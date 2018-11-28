@@ -1,63 +1,36 @@
-var flock;
-
-function setup() {
-  createCanvas(screen.width,screen.height);
-  createP("Drag the mouse to generate new boids.");
-
-  flock = new Flock();
-  // Add an initial set of boids into the system
-  for (var i = 0; i < 100; i++) {
-    var b = new Boid(width/2,height/2);
-    flock.addBoid(b);
-  }
-}
-
-function draw() {
-  background(51);
-  flock.run();
-}
-
-// Add a new boid into the System
-function mouseDragged() {
-  flock.addBoid(new Boid(mouseX,mouseY));
-}
-
-// The Nature of Code
-// Daniel Shiffman
-// http://natureofcode.com
-
-// Flock object
-// Does very little, simply manages the array of all the boids
-
-function Flock() {
-  // An array for all the boids
-  this.boids = []; // Initialize the array
-}
-
-Flock.prototype.run = function() {
-  for (var i = 0; i < this.boids.length; i++) {
-    this.boids[i].run(this.boids);  // Passing the entire list of boids to each boid individually
-  }
-}
-
-Flock.prototype.addBoid = function(b) {
-  this.boids.push(b);
-}
-
 // The Nature of Code
 // Daniel Shiffman
 // http://natureofcode.com
 
 // Boid class
 // Methods for Separation, Cohesion, Alignment added
+// import * as p5 from './p5.min.js';
+// import * as sound from './addons/p5.sound.min.js'
 
-function Boid(x,y) {
+function Boid(sketch, x,y) {
+  this.sketch = sketch;
+  const {createVector, random} = this.sketch;
+
   this.acceleration = createVector(0,0);
   this.velocity = createVector(random(-1,1),random(-1,1));
   this.position = createVector(x,y);
   this.r = 3.0;
   this.maxspeed = 3;    // Maximum speed
   this.maxforce = 0.05; // Maximum steering force
+
+
+  var modulator = new p5.Oscillator();
+  modulator.disconnect();
+  modulator.freq(Math.random(3,14));
+  modulator.amp(1);
+  modulator.start();
+
+  var osc = new p5.Oscillator();
+  osc.setType('sine');
+  var freq = 240;
+  osc.freq(freq);
+  osc.amp(modulator.scale(-1,1,0.1,-0.1));
+  osc.start();
 }
 
 Boid.prototype.run = function(boids) {
@@ -112,34 +85,39 @@ Boid.prototype.seek = function(target) {
 }
 
 Boid.prototype.render = function() {
+  const {
+    radians,
+    CLOSE,
+  } = this.sketch;
+
   // Draw a triangle rotated in the direction of velocity
   var theta = this.velocity.heading() + radians(90);
-  fill(127);
-  stroke(200);
-  push();
-  translate(this.position.x,this.position.y);
-  rotate(theta);
-  beginShape();
-  vertex(0, -this.r*2);
-  vertex(-this.r, this.r*2);
-  vertex(this.r, this.r*2);
-  endShape(CLOSE);
-  pop();
+  this.sketch.fill(127);
+  this.sketch.stroke(200);
+  this.sketch.push();
+  this.sketch.translate(this.position.x,this.position.y);
+  this.sketch.rotate(theta);
+  this.sketch.beginShape();
+  this.sketch.vertex(0, -this.r*2);
+  this.sketch.vertex(-this.r, this.r*2);
+  this.sketch.vertex(this.r, this.r*2);
+  this.sketch.endShape(CLOSE);
+  this.sketch.pop();
 }
 
 // Wraparound
 Boid.prototype.borders = function() {
-  if (this.position.x < -this.r)  this.position.x = width +this.r;
-  if (this.position.y < -this.r)  this.position.y = height+this.r;
-  if (this.position.x > width +this.r) this.position.x = -this.r;
-  if (this.position.y > height+this.r) this.position.y = -this.r;
+  if (this.position.x < -this.r)  this.position.x = screen.width +this.r;
+  if (this.position.y < -this.r)  this.position.y = screen.height+this.r;
+  if (this.position.x > screen.width +this.r) this.position.x = -this.r;
+  if (this.position.y > screen.height+this.r) this.position.y = -this.r;
 }
 
 // Separation
 // Method checks for nearby boids and steers away
 Boid.prototype.separate = function(boids) {
   var desiredseparation = 25.0;
-  var steer = createVector(0,0);
+  var steer = this.sketch.createVector(0,0);
   var count = 0;
   // For every boid in the system, check if it's too close
   for (var i = 0; i < boids.length; i++) {
@@ -173,6 +151,8 @@ Boid.prototype.separate = function(boids) {
 // Alignment
 // For every nearby boid in the system, calculate the average velocity
 Boid.prototype.align = function(boids) {
+  const {createVector} = this.sketch;
+
   var neighbordist = 50;
   var sum = createVector(0,0);
   var count = 0;
@@ -198,6 +178,8 @@ Boid.prototype.align = function(boids) {
 // Cohesion
 // For the average location (i.e. center) of all nearby boids, calculate steering vector towards that location
 Boid.prototype.cohesion = function(boids) {
+  const {createVector} = this.sketch;
+
   var neighbordist = 50;
   var sum = createVector(0,0);   // Start with empty vector to accumulate all locations
   var count = 0;
@@ -215,3 +197,5 @@ Boid.prototype.cohesion = function(boids) {
     return createVector(0,0);
   }
 }
+
+export default Boid;
