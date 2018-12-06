@@ -1,6 +1,9 @@
 var numOscillators = 0;
 var oscPatches = new Array(64);
+var networkReceiver;
+var networkSender;
 
+var MAX_OCTAVE = 4;
 
 var NOTE_B0 = 31;
 var NOTE_C1 = 33;
@@ -100,92 +103,18 @@ NOTE_D2,
   NOTE_G2,
   NOTE_GS2,
   NOTE_AS2,
-  NOTE_C3,
-  NOTE_D3,
-  NOTE_DS3,
-  NOTE_F3,
-  NOTE_G3,
-  NOTE_GS3,
-  NOTE_AS3,
-  NOTE_C4,
-  NOTE_D4,
-  NOTE_DS4,
-  NOTE_F4,
-  NOTE_G4,
-  NOTE_GS4,
-  NOTE_AS4,
-  NOTE_C5,
-  NOTE_D5,
-  NOTE_DS5,
-  NOTE_F5,
-  NOTE_G5,
-  NOTE_GS5,
-  NOTE_AS5,
-	NOTE_C6,
-  NOTE_D6,
-  NOTE_DS6,
-  NOTE_F6,
-  NOTE_G6,
-  NOTE_GS6,
-  NOTE_AS6,
-	NOTE_C7,
-	NOTE_D7,
-  NOTE_DS7,
-  NOTE_F7,
-  NOTE_G7,
-  NOTE_GS7,
-  NOTE_AS7,
-	NOTE_C8,
 ];
 
 var cPentatonicNotes = [
   NOTE_C2,
- // NOTE_D2,
   NOTE_DS2,
   NOTE_F2,
   NOTE_G2,
-  // NOTE_GS2,
   NOTE_AS2,
-  NOTE_C3,
-  // NOTE_D3,
-  NOTE_DS3,
-  NOTE_F3,
-  NOTE_G3,
-  // NOTE_GS3,
-  NOTE_AS3,
-  NOTE_C4,
-  // NOTE_D4,
-  NOTE_DS4,
-  NOTE_F4,
-  NOTE_G4,
-  // NOTE_GS4,
-  NOTE_AS4,
-  NOTE_C5,
-  // NOTE_D5,
-  NOTE_DS5,
-  NOTE_F5,
-  NOTE_G5,
-  // NOTE_GS5,
-  NOTE_AS5,
-	NOTE_C6,
-  // NOTE_D6,
-  NOTE_DS6,
-  NOTE_F6,
-  NOTE_G6,
-  // NOTE_GS6,
-  NOTE_AS6,
-	NOTE_C7,
-	// NOTE_D7,
-  NOTE_DS7,
-  NOTE_F7,
-  NOTE_G7,
-  // NOTE_GS7,
-  NOTE_AS7,
-	NOTE_C8,
 ];
 
 function makeOscSubpatch(patch, carrierFreq) {
-	var modulatorFreq = Math.random(0.5, 10);
+	var modulatorFreq = Math.random()*8 + 1;
 	var ins = [
 		patch.newdefault(60,20, "inlet"),
 		patch.newdefault(120,20, "inlet"),
@@ -193,11 +122,14 @@ function makeOscSubpatch(patch, carrierFreq) {
 		patch.newdefault(300,300, "inlet")
 	];
 	var carrier = patch.newdefault(20,90,"cycle~", carrierFreq);
-	var modulator = patch.newdefault(150,90,"cycle~", modulatorFreq);
+	var modDutyCycle = Math.random();
+	var modulator = patch.newdefault(150,90,"tri~", modulatorFreq, modDutyCycle);
 	var signalMultiplier = patch.newdefault(100, 130, "*~");
+	var signalToFloat = patch.newdefault(50, 200, 'number~');
 	var inputGain = patch.newdefault(160, 180,"*~");
 	var pan = patch.newdefault(150, 350, "pan2");
 	var outs = [
+		patch.newdefault(50,250, "outlet"),
 		patch.newdefault(150,400, "outlet"),
 		patch.newdefault(200,400, "outlet")
 	];
@@ -209,30 +141,44 @@ function makeOscSubpatch(patch, carrierFreq) {
 	patch.connect(ins[2],0,inputGain,0);
 	patch.connect(inputGain,0,pan,0);
 	patch.connect(ins[3],0,pan,1);
-	patch.connect(pan,0,outs[0],0);
-	patch.connect(pan,1,outs[1],0);
+	patch.connect(signalMultiplier, 0, signalToFloat,0);
+	patch.connect(signalToFloat, 1, outs[0],0);
+	patch.connect(pan,0,outs[1],0);
+	patch.connect(pan,1,outs[2],0);
 }
 
 function oscPatch(parentPatch, index) {
-	var rowWidth = 7;
-	var left = 200 + (index % rowWidth)*200;
-	var top = 200 + (Math.floor(index / rowWidth) * 300);
+	var scale = cMinorNotes;
+	var rowWidth = scale.length;
+	var left = 200 + (index % rowWidth) * 200;
+	var top = 200 + (Math.floor(index / rowWidth) * 200);
 	var p = parentPatch.newdefault(left, top,"p","osc");
-	makeOscSubpatch(p.subpatcher(), cMinorNotes[index % cMinorNotes.length]);
+	var octave = Math.floor(index / scale.length) + 1;
+	octave = octave % MAX_OCTAVE;
+ 	var carrierFreq = scale[index % scale.length] * Math.pow(2, octave);
+	makeOscSubpatch(p.subpatcher(), carrierFreq);
+
 	return {
 		patch: p,
 		connect: function(){
-			this.OSCreceiver = parentPatch.newdefault(left, top - 120,"udpreceive","6448");
-			this.routepass = parentPatch.newdefault(left, top - 80, "routepass", "/boidsong/position/boid/" + index);
+			this.routepass = parentPatch.newdefault(left, top - 80, "routepass", "/boidsong/boid/" + index + "/pos");
 			this.unjoiner = parentPatch.newdefault(left, top - 40, "unjoin", "3");
+
+			this.oscMessage = parentPatch.newdefault(left, top + 80, "message");// "/boidsong/oscs/" + index + "/amp", "$1");
+
+			this.oscMessage.set("/boidsong/oscs/" + index + "/amp","$1");
+
 			this.leftSend = parentPatch.newdefault(left, top + 40, "s", "left");
 			this.rightSend = parentPatch.newdefault(left + 100, top + 40, "s", "right");
-			parentPatch.connect(this.OSCreceiver, 0, this.routepass, 0);
+			parentPatch.hiddenconnect(networkReceiver, 0, this.routepass, 0);
 			parentPatch.connect(this.routepass, 0, this.unjoiner, 0);
 			parentPatch.connect(this.unjoiner, 1, this.patch, 2);
 			parentPatch.connect(this.unjoiner, 2, this.patch, 3);
-			parentPatch.connect(this.patch,0,this.leftSend,0);
-			parentPatch.connect(this.patch,1,this.rightSend,0);
+			parentPatch.connect(this.patch,1,this.leftSend,0);
+			parentPatch.connect(this.patch,2,this.rightSend,0);
+			parentPatch.connect(this.patch,0,this.oscMessage,0);
+			parentPatch.hiddenconnect(this.oscMessage, 0, networkSender, 0)
+
 			return this;
 		},
 		remove: function() {
@@ -242,26 +188,9 @@ function oscPatch(parentPatch, index) {
 			parentPatch.remove(this.unjoiner);
 			parentPatch.remove(this.leftSend);
 			parentPatch.remove(this.rightSend);
+			parentPatch.remove(this.oscMessage);
 		}
 	}
-}
-
-function connectOscSubpatch(patch) {
-	var left = patch.rect[0];
-	var top = patch.rect[1];
-
-	var OSCreceiver = this.patcher.newdefault(left, top - 120,"udpreceive","6448");
-	var routepass = this.patcher.newdefault(left, top - 80, "routepass", "/boidsong/position/boid/1");
-	var unjoiner = this.patcher.newdefault(left, top - 40, "unjoin", "3");
-	this.patcher.connect(OSCreceiver, 0, routepass, 0);
-	this.patcher.connect(routepass, 0, unjoiner, 0);
-	this.patcher.connect(unjoiner, 1, patch, 2);
-	this.patcher.connect(unjoiner, 2, patch, 3);
-
-	var leftCh = this.patcher.newdefault(left, top + 40, "s", "left");
-	var rightCh = this.patcher.newdefault(left + 100, top + 40, "s", "right");
-	this.patcher.connect(patch,0,leftCh,0);
-	this.patcher.connect(patch,1,rightCh,0);
 }
 
 function oscillators(val)
@@ -269,25 +198,35 @@ function oscillators(val)
 	if(arguments.length) // bail if no arguments
 	{
 		// parse arguments
-		for(var i=0;i<numOscillators;i++) // get rid of the ctlin and uslider objects using the old number of sliders
+		for(var i=0;i<numOscillators;i++)
 		{
 			oscPatches[i].remove();
 		}
 
+		if(numOscillators && !!networkReceiver) {
+			this.patcher.remove(networkReceiver);
+			this.patcher.remove(networkSender);
+		}
+
 		numOscillators = arguments[0];
 
-		for(var i=0;i<numOscillators;i++) // get rid of the ctlin and uslider objects using the old number of sliders
+		if(numOscillators) {
+			networkReceiver = this.patcher.newdefault(30, 400, "udpreceive", "6448");
+			networkSender = this.patcher.newdefault(30, 450, "udpsend", "127.0.0.1", "6448");
+		}
+
+		for(var i=0;i<numOscillators;i++)
 		{
 			oscPatches[i] = oscPatch(this.patcher, i).connect();
 		}
 	}
+}
 
-//	oscPatches[0].remove();
+function setOscillators(number) {
+	numOscillators = number;
+}
 
-//	var patch = oscPatch(this.patcher, 1).connect();
-
-//	patch.remove();
-//	var subpatch = this.patcher.newdefault(200, 200,"p","osc");
-//	makeOscSubpatch(subpatch.subpatcher());
-//	connectOscSubpatch(subpatch);
+function save()
+{
+	embedmessage("setOscillators", numOscillators);
 }
