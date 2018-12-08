@@ -3,7 +3,14 @@ var oscPatches = new Array(64);
 var networkReceiver;
 var networkSender;
 
-var MAX_OCTAVE = 4;
+var unjoiner;
+var joiner;
+var hoaMap;
+var hoaOptim;
+var hoaDecoder;
+var hoaDac;
+
+var MAX_OCTAVE = 5;
 
 var NOTE_B0 = 31;
 var NOTE_C1 = 33;
@@ -113,84 +120,82 @@ var cPentatonicNotes = [
   NOTE_AS2,
 ];
 
-function makeOscSubpatch(patch, carrierFreq) {
-	var modulatorFreq = Math.random()*8 + 1;
-	var ins = [
-		patch.newdefault(60,20, "inlet"),
-		patch.newdefault(120,20, "inlet"),
-		patch.newdefault(220,130, "inlet"),
-		patch.newdefault(300,300, "inlet")
-	];
-	var carrier = patch.newdefault(20,90,"cycle~", carrierFreq);
-	var modDutyCycle = Math.random();
-	var modulator = patch.newdefault(150,90,"tri~", modulatorFreq, modDutyCycle);
-	var signalMultiplier = patch.newdefault(100, 130, "*~");
-	var signalToFloat = patch.newdefault(50, 200, 'number~');
-	var inputGain = patch.newdefault(160, 180,"*~");
-	var pan = patch.newdefault(150, 350, "pan2");
-	var outs = [
-		patch.newdefault(50,250, "outlet"),
-		patch.newdefault(150,400, "outlet"),
-		patch.newdefault(200,400, "outlet")
-	];
-	patch.connect(ins[0],0,carrier,0);
-	patch.connect(ins[1],0,modulator,0);
-	patch.connect(carrier,0,signalMultiplier, 0);
-	patch.connect(modulator,0,signalMultiplier, 1);
-	patch.connect(signalMultiplier,0,inputGain,0);
-	patch.connect(ins[2],0,inputGain,0);
-	patch.connect(inputGain,0,pan,0);
-	patch.connect(ins[3],0,pan,1);
-	patch.connect(signalMultiplier, 0, signalToFloat,0);
-	patch.connect(signalToFloat, 1, outs[0],0);
-	patch.connect(pan,0,outs[1],0);
-	patch.connect(pan,1,outs[2],0);
-}
-
 function oscPatch(parentPatch, index) {
 	var scale = cMinorNotes;
 	var rowWidth = scale.length;
-	var left = 200 + (index % rowWidth) * 200;
-	var top = 200 + (Math.floor(index / rowWidth) * 200);
-	var p = parentPatch.newdefault(left, top,"p","osc");
+	var left = 150 + (index % rowWidth) * 200;
+	var top = 320 + (Math.floor(index / rowWidth) * 200);
+	var p = parentPatch;
 	var octave = Math.floor(index / scale.length) + 1;
 	octave = octave % MAX_OCTAVE;
  	var carrierFreq = scale[index % scale.length] * Math.pow(2, octave);
-	makeOscSubpatch(p.subpatcher(), carrierFreq);
-
+	
+	var modulatorFreq = Math.random()*8 + 1;
+	var carrier = parentPatch.newdefault(left,top,"cycle~", carrierFreq);
+	var modDutyCycle = Math.random();
+	var modulator = parentPatch.newdefault(left + 30,top + 20,"tri~", modulatorFreq, modDutyCycle);
+	var signalMultiplier = parentPatch.newdefault(left, top + 50, "*~");
+	var signalToFloat = parentPatch.newdefault(left, top + 80, 'number~');
+	parentPatch.connect(carrier,0,signalMultiplier, 0);
+	parentPatch.connect(modulator,0,signalMultiplier, 1);
+	parentPatch.connect(signalMultiplier, 0, signalToFloat,0);
+	
 	return {
 		patch: p,
+		carrier: carrier,
+		modulator: modulator,
+		signalMultiplier: signalMultiplier,
+		signalToFloat: signalToFloat,
 		connect: function(){
-			this.routepass = parentPatch.newdefault(left, top - 80, "routepass", "/boidsong/boid/" + index + "/pos");
-			this.unjoiner = parentPatch.newdefault(left, top - 40, "unjoin", "3");
-
-			this.oscMessage = parentPatch.newdefault(left, top + 80, "message");// "/boidsong/oscs/" + index + "/amp", "$1");
-
-			this.oscMessage.set("/boidsong/oscs/" + index + "/amp","$1");
-
-			this.leftSend = parentPatch.newdefault(left, top + 40, "s", "left");
-			this.rightSend = parentPatch.newdefault(left + 100, top + 40, "s", "right");
-			parentPatch.hiddenconnect(networkReceiver, 0, this.routepass, 0);
-			parentPatch.connect(this.routepass, 0, this.unjoiner, 0);
-			parentPatch.connect(this.unjoiner, 1, this.patch, 2);
-			parentPatch.connect(this.unjoiner, 2, this.patch, 3);
-			parentPatch.connect(this.patch,1,this.leftSend,0);
-			parentPatch.connect(this.patch,2,this.rightSend,0);
-			parentPatch.connect(this.patch,0,this.oscMessage,0);
-			parentPatch.hiddenconnect(this.oscMessage, 0, networkSender, 0)
+			this.oscMessage = parentPatch.newdefault(left, top + 110, "message");// "/boidsong/oscs/" + index + "/amp", "$1");
+			
+			this.oscMessage.set("/boidsong/oscs/amp", index, modulatorFreq);
+			this.oscMessage.size(150, 50);
+			
+			this.ampSend = parentPatch.newdefault(left, top + 140, "s", "amp");
+			this.signalSend = parentPatch.newdefault(left + 60, top + 80, "s", "signal/" + index);
+						
+			parentPatch.connect(this.signalToFloat, 1, this.oscMessage, 0);
+			parentPatch.connect(this.oscMessage, 0, this.ampSend, 0);
+			parentPatch.connect(this.signalMultiplier, 0, hoaMap, index);
+			parentPatch.connect(this.signalMultiplier, 0, this.signalSend, 0);
 
 			return this;
 		},
 		remove: function() {
-			parentPatch.remove(this.patch);
-			parentPatch.remove(this.OSCreceiver);
-			parentPatch.remove(this.routepass);
-			parentPatch.remove(this.unjoiner);
-			parentPatch.remove(this.leftSend);
-			parentPatch.remove(this.rightSend);
+			parentPatch.remove(this.ampSend);
+			parentPatch.remove(this.signalSend);
 			parentPatch.remove(this.oscMessage);
+			parentPatch.remove(this.signalToFloat);
+			parentPatch.remove(this.carrier);
+			parentPatch.remove(this.modulator);
+			parentPatch.remove(this.signalMultiplier);
 		}
 	}
+}
+
+function patchHoaAmbisonics() {
+	var top = 80;
+	var left = 250;
+		networkReceiver = this.patcher.newdefault(left, top, "udpreceive", "6448");
+		unjoiner = this.patcher.newdefault(left, top + 30, "unjoin", 6);
+		joiner = this.patcher.newdefault(left, top + 2*30, "join", 5);
+		hoaMap = this.patcher.newdefault(left, top + 3*30, "hoa.2d.map~", 3, numOscillators + 1);
+  		hoaOptim = this.patcher.newdefault(left, top + 4*30, "hoa.2d.optim~", 3, "inPhase");
+		hoaDecoder = this.patcher.newdefault(left, top + 5*30, "hoa.2d.decoder~", 3, "@mode", "binaural");
+ 		hoaDac = this.patcher.newdefault(left, top + 6*30, "hoa.dac~", "1:2");
+			
+		this.patcher.connect(networkReceiver, 0, unjoiner, 0);
+		for(var i=0;i<5;i++) {
+			this.patcher.connect(unjoiner, i+1, joiner, i);
+		}
+		this.patcher.connect(joiner, 0, hoaMap, 0);
+		for(var i=0;i<=6;i++) {
+			this.patcher.connect(hoaMap, i, hoaOptim, i);
+			this.patcher.connect(hoaOptim, i, hoaDecoder, i);
+		}
+		this.patcher.connect(hoaDecoder, 0, hoaDac, 0);
+		this.patcher.connect(hoaDecoder, 1, hoaDac, 1);
 }
 
 function oscillators(val)
@@ -202,17 +207,27 @@ function oscillators(val)
 		{
 			oscPatches[i].remove();
 		}
-
-		if(numOscillators && !!networkReceiver) {
+		
+		if(numOscillators) {
 			this.patcher.remove(networkReceiver);
 			this.patcher.remove(networkSender);
+			this.patcher.remove(amplitudeReceiver);
+			this.patcher.remove(unjoiner);
+      		this.patcher.remove(joiner);
+      		this.patcher.remove(hoaMap);
+      		this.patcher.remove(hoaOptim);
+      		this.patcher.remove(hoaDecoder);
+      		this.patcher.remove(hoaDac);		
 		}
 
 		numOscillators = arguments[0];
-
+		
 		if(numOscillators) {
-			networkReceiver = this.patcher.newdefault(30, 400, "udpreceive", "6448");
-			networkSender = this.patcher.newdefault(30, 450, "udpsend", "127.0.0.1", "6448");
+			amplitudeReceiver = this.patcher.newdefault(20, 220, "r", "amp");
+			networkSender = this.patcher.newdefault(20, 250, "udpsend", "127.0.0.1", "6448");
+			this.patcher.connect(amplitudeReceiver, 0, networkSender, 0);
+			
+			patchHoaAmbisonics();
 		}
 
 		for(var i=0;i<numOscillators;i++)
