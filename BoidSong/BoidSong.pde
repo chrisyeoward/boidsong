@@ -17,9 +17,11 @@ int currentOctave = MIN_OCTAVE;
 
 int COLOR_SCALE = 360;
 
+PFont f;
+
 void setup() {
-  //size(1000, 800, P3D);
-  fullScreen(P3D);
+  size(1000, 800, P3D);
+  //fullScreen(P3D);
 
   oscP5 = new OscP5(this, 9000);
   dest = new NetAddress("127.0.0.1",6448);
@@ -27,27 +29,38 @@ void setup() {
   ArrayList<Boid> boids = new ArrayList<Boid>();
   
   colorMode(HSB, COLOR_SCALE);
-  for(int i = 0; i <= BOID_COUNT; i++){
+  for(int i = 0; i < BOID_COUNT; i++){
     int noteCount = notes.length;
     int hue = (i * 3*COLOR_SCALE/4) / noteCount;
-    println(hue);
-    color colour = color(hue % (3*COLOR_SCALE/4 - 1), (2*COLOR_SCALE)/3, (2*COLOR_SCALE)/3);
+    hue = hue % (3*COLOR_SCALE/4 - 1);
     boids.add(new Boid(
     random(-width/4,width/4), 
     random(-height/4, height/4), 
     random(-width/4, width/4),
-    colour));
+    hue));
+    
+    f = createFont("Arial",16,true);
+    textFont(f);
   }
-  int sphereRadius = width;
-  boidController = new BoidController(boids, sphereRadius, oscP5, dest);
+  //for(int i = 0; i <= BOID_COUNT; i++){
+  //  int noteCount = notes.length;
+  //  int hue = (i * 3*COLOR_SCALE/4) / noteCount;
+  //  println(hue);
+  //  color colour = color(hue % (3*COLOR_SCALE/4 - 1), 0, (COLOR_SCALE)/2);
+  //  boids.add(new Boid(
+  //  random(-width/4,width/4), 
+  //  random(-height/4, height/4), 
+  //  random(-width/4, width/4),
+  //  colour));
+  //}
+  int boundRadius = height;
+  boidController = new BoidController(boids, boundRadius, oscP5, dest);
   
   synth = new Synth(this);
-  
-  oscP5.plug(boidController,"receivePulse","/boidsong/oscs/amp");
 }
 
 void drawCanvas(){
-  background(#0E1227); 
+  background(#090C1A); 
 }
 
 void draw() {
@@ -60,22 +73,37 @@ void draw() {
     boidController.runBoids();
 
   popMatrix();
+  
+  fill(255);
+  text("Octave: " + currentOctave, 20, 30);
   synth.play();
  }
  
 void keyPressed() {
   int note = keyToNoteIndex(key);
   if(note != -1) {
-    boidController.attractBoid(note + currentOctave * notes.length);
+    boidController.pullBoid(note + currentOctave * notes.length);
     synth.noteOn(notes[note], currentOctave);
   };
   handleOctaveChange(key);
+  switch(key) {
+    case ' ':
+      boidController.holdingBoids = true;
+  }
 }
 
 void keyReleased(){
   int note = keyToNoteIndex(key);
-  if(note != -1) boidController.stopAttractingBoid(note + currentOctave * notes.length); 
-  synth.noteOff();
+  if(note != -1) {
+    //boidController.releaseBoid(note + currentOctave * notes.length);
+    synth.noteOff(notes[note]);
+  }
+  
+  switch(key) {
+    case ' ':
+      boidController.releaseAllBoids();
+      boidController.holdingBoids = false;
+  }
 }
 
 void handleOctaveChange(char key) {
@@ -86,7 +114,7 @@ void handleOctaveChange(char key) {
       break;
     case '>':
     case '.':
-      if (currentOctave < MAX_OCTAVE) currentOctave++;
+      if (currentOctave < MAX_OCTAVE - 1) currentOctave++;
       break;
   }
 }

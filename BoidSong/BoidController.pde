@@ -5,10 +5,13 @@ class BoidController {
   float boundSphereRadius;
   HashSet<Boid> attractingBoids;
   
-  PVector camera = new PVector(0,0,600);
+  PVector camera = new PVector(0,0,520);
+  PVector orbitPoint = camera.copy().sub(new PVector(0,0,10));
    
   OscP5 oscP5;
   NetAddress netDest;
+  
+  boolean holdingBoids = false;
   
   BoidController(ArrayList<Boid> boids, float boundSphereRadius,  OscP5 oscChannel, NetAddress dest) {
     this.boids = boids;
@@ -22,16 +25,29 @@ class BoidController {
     boid.applyForce(force);
   }
   
-  void attractBoid(int note) {
-    for(int i = note; i < boids.size(); i = i + MAX_OCTAVE * notes.length) {
-      attractingBoids.add(boids.get(i));
+  void pullBoid(int noteIndex) {
+    for(int i = noteIndex; i < boids.size(); i = i + (MAX_OCTAVE + 1) * notes.length) {
+      Boid boid = boids.get(i);
+      if(!attractingBoids.contains(boid) && boid.position.z < orbitPoint.z) {
+        attractingBoids.add(boid);
+        //boid.setActive(true);
+        break;
+      }
     }
   }
   
-  void stopAttractingBoid(int note) {
-    for(int i = note; i < boids.size(); i = i + MAX_OCTAVE * notes.length) {
-      attractingBoids.remove(boids.get(i));
+  void releaseBoid(int noteIndex) {
+    if(!holdingBoids) {
+      //for(int i = noteIndex; i < boids.size(); i = i + MAX_OCTAVE * notes.length) {
+        Boid boid = boids.get(noteIndex);
+        attractingBoids.remove(boid);
+        //boid.setActive(false);
+      //}
     }
+  }
+  
+  void releaseAllBoids() {
+    attractingBoids.clear();
   }
   
   void runBoids(){
@@ -43,14 +59,19 @@ class BoidController {
         boundsForce.mult(1.0);
         applyForce(boid, boundsForce);
         
-        if(attractingBoids.contains(boid)) {
+        if(attractingBoids.contains(boid)) {  
           //PVector pullForce = new PVector(0,0,570); // point around which to orbit
-          PVector pullForce = camera.copy()
-            .sub(new PVector(0,0,50))
+          PVector pullForce = orbitPoint.copy()
             .sub(boid.position)
             .normalize();
           pullForce.mult(0.15);
           applyForce(boid, pullForce);
+          if(boid.position.z > orbitPoint.z) {
+            releaseBoid(currentBoid);
+          }
+          boid.setActive(true);
+        } else {
+          boid.setActive(false);
         }
         
         boid.run(boids);
@@ -58,24 +79,57 @@ class BoidController {
       //}
     } 
   }
+  
+  // Separation
+  // Method checks for nearby boids and steers away
+  //PVector separate (ArrayList<Boid> boids) {
+  //  float desiredseparation = 20.0f;
+  //  PVector steer = new PVector(0, 0, 0);
+  //  int count = 0;
+  //  // For every boid in the system, check if it's too close
+  //  for (Boid other : boids) {
+  //    float d = PVector.dist(position, other.position);
+  //    // If the distance is greater than 0 and less than an arbitrary amount (0 when you are yourself)
+  //    if ((d > 0) && canSeeBoid(other)) {
+  //      // Calculate vector pointing away from neighbor
+  //      PVector diff = PVector.sub(position, other.position);
+  //      diff.normalize();
+  //      //diff.div(d);     // Weight by distance
+  //      diff.mult(max(desiredseparation - d, 0));
+  //      steer.add(diff);
+  //      count++;            // Keep track of how many
+  //    }
+  //  }
+  //  // Average -- divide by how many
+  //  if (count > 0) {
+  //    steer.div((float)count);
+  //  }
+
+  //  // As long as the vector is greater than 0
+  //  if (steer.mag() > 0) {
+  //    // First two lines of code below could be condensed with new PVector setMag() method
+  //    // Not using this method until Processing.js catches up
+  //    // steer.setMag(maxspeed);
+
+  //    // Implement Reynolds: Steering = Desired - Velocity
+  //    steer.normalize();
+  //    steer.mult(maxspeed);
+  //    steer.sub(velocity);
+  //    steer.limit(maxforce);
+  //  }
+  //  return steer;
+  //}
     
   PVector bound(Boid boid) {
-    float maxforce = 0.04;
-    
-    //float radius = min(boid.position.mag(), boundSphereRadius);
-    //float forceMagnitude = 1/(boundSphereRadius - radius); 
-    //PVector forceUnitVector = boid.position.copy().normalize();
-    //forceUnitVector.mult(-1);
-    //return forceUnitVector.setMag(forceMagnitude).limit(maxforce);
-    
-    float boundMag = 0.02;
+   
+    float boundMag = 0.005;
     PVector boundsForce = new PVector(0,0,0);
     if(boid.position.x < -boundSphereRadius) {
       boundsForce.add(boundMag,0,0);
     } else if (boid.position.x > boundSphereRadius) {
       boundsForce.add(-boundMag,0,0);
     }
-    
+   
     if(boid.position.z < -boundSphereRadius) {
       boundsForce.add(0,0,boundMag);
     } else if (boid.position.z > boundSphereRadius) {
@@ -87,7 +141,7 @@ class BoidController {
     } else if (boid.position.y > boundSphereRadius) {
       boundsForce.add(0,-boundMag,0);
     } 
-    return boundsForce.limit(maxforce);
+    return boundsForce;
   }
   
   void dispatchPosition(Boid boid, int noteIndex) {
@@ -113,15 +167,11 @@ class BoidController {
     
     msg.add(noteIndex + 1);
     msg.add("polar");
-    msg.add(r/30);
+    msg.add(r/20);
     msg.add(azimuth);
     msg.add(elevation);
     
     oscP5.send(msg, netDest);
   }
-  
-  void receivePulse(int boidIndex, float pulseFrequency) {
-    Boid boid = boids.get(boidIndex);
-    boid.setColourPulse(pulseFrequency);
-  }
+ 
 }

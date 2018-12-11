@@ -12,12 +12,16 @@ class Boid {
   float maxspeed = 3;
   
   color baseColour;
+  float hue;
+  float defaultColourIntensity = 0.65*COLOR_SCALE;
+  float colourIntensity = defaultColourIntensity;
+  boolean active;
   float colourPhaseShift = 0;
   float colourFreq = 0.01;
   
-    Boid(float x, float y, float z, color baseColour) {
+    Boid(float x, float y, float z, float hue) {
     acceleration = new PVector(0, 0, 0);
-    this.baseColour = baseColour;
+    this.hue = hue;
     maxforce = 0.04;
     
     velocity = PVector.random3D().mult(maxspeed) ;
@@ -49,9 +53,9 @@ class Boid {
     PVector ali = align(boids);      // Alignment
     PVector coh = cohesion(boids);   // Cohesion
     // Arbitrarily weight these forces
-    sep.mult(2.0);
+    sep.mult(2.5);
     ali.mult(1.0);
-    coh.mult(1.15);
+    coh.mult(1.0);
     // Add the force vectors to acceleration
     applyForce(sep);
     applyForce(ali);
@@ -90,22 +94,6 @@ class Boid {
     return steer;
   }
   
-  void updateColour() {
-      colorMode(HSB, COLOR_SCALE);
-
-    float amplitude = sin((TWO_PI*millis())*colourFreq + colourPhaseShift);
-    int centreValue = (2*COLOR_SCALE)/3;
-    float colourValue = centreValue + amplitude * centreValue / 2;
-
-    float hue = hue(baseColour);
-    baseColour = color(hue, colourValue, colourValue + 50);
-  }
-  
-  void setColourPulse(float pulseFrequency) {
-    colourFreq = pulseFrequency*1e-3;
-    colourPhaseShift = 0;
-  }
-  
   void render() {    
     PVector normVel = velocity.copy().normalize();
     PVector perpForceVel = normVel.copy().cross(velocityDiff.copy().add(new PVector(0,0.1,0))).setMag(2);
@@ -113,12 +101,19 @@ class Boid {
     PVector rightWing = perpForceVel.copy().mult(-1).sub(normVel);
     
     //updateColour();
+    float intensity = active ? COLOR_SCALE : defaultColourIntensity;
+    baseColour = color(hue, intensity, intensity);
     
+    pushMatrix();
+    translate(position.x, position.y, position.z);
+    if(active) {
+      noFill();
+      stroke(baseColour, 70);
+      ellipse(0, 0, 5*r, 5*r);
+    }
     fill(baseColour, 50);
     stroke(baseColour);
     strokeWeight(1);
-    pushMatrix();
-    translate(position.x, position.y, position.z);
     beginShape(TRIANGLES);
     vertex(normVel.x*r, normVel.y*r, normVel.z*r);
     vertex(leftWing.x*r, leftWing.y*r, leftWing.z*r);
@@ -135,18 +130,18 @@ class Boid {
   // Separation
   // Method checks for nearby boids and steers away
   PVector separate (ArrayList<Boid> boids) {
-    float desiredseparation = 20.0f;
+    float desiredseparation = 25.0f;
     PVector steer = new PVector(0, 0, 0);
     int count = 0;
     // For every boid in the system, check if it's too close
     for (Boid other : boids) {
       float d = PVector.dist(position, other.position);
       // If the distance is greater than 0 and less than an arbitrary amount (0 when you are yourself)
-      if ((d > 0)) {
+      if ((d > 0) && canSeeBoid(other)) {
         // Calculate vector pointing away from neighbor
         PVector diff = PVector.sub(position, other.position);
         diff.normalize();
-        //diff.div(d);     // Weight by distance
+        diff.div(d);     // Weight by distance
         diff.mult(max(desiredseparation - d, 0));
         steer.add(diff);
         count++;            // Keep track of how many
@@ -161,11 +156,9 @@ class Boid {
     if (steer.mag() > 0) {
       // First two lines of code below could be condensed with new PVector setMag() method
       // Not using this method until Processing.js catches up
-      // steer.setMag(maxspeed);
+      steer.setMag(maxspeed);
 
       // Implement Reynolds: Steering = Desired - Velocity
-      steer.normalize();
-      steer.mult(maxspeed);
       steer.sub(velocity);
       steer.limit(maxforce);
     }
@@ -180,7 +173,7 @@ class Boid {
     int count = 0;
     for (Boid other : boids) {
       float d = PVector.dist(position, other.position);
-      if ((d > 0) && (d < neighbordist)) {
+      if ((d > 0) && (d < neighbordist) &&  canSeeBoid(other)) {
         PVector otherVel = other.velocity.copy();
         otherVel.mult(max(neighbordist - d, 0)/neighbordist);
         sum.add(otherVel);     
@@ -200,18 +193,19 @@ class Boid {
       return new PVector(0, 0, 0);
     }
   }
-
+  
   // Cohesion
   // For the average position (i.e. center) of all nearby boids, calculate steering vector towards that position
   PVector cohesion (ArrayList<Boid> boids) {
-    float neighbordist = 50;
+    float neighbordist = 40;
     PVector sum = new PVector(0, 0, 0);   // Start with empty vector to accumulate all positions
     int count = 0;
     for (Boid other : boids) {
       float d = PVector.dist(position, other.position);
-      if ((d > 0) ) {
+      if ((d > 0) && canSeeBoid(other)) {
         PVector otherPos = other.position.copy();
-        otherPos.mult(max(neighbordist - d, 1/pow(d,2))/neighbordist);
+        //otherPos.mult(max(neighbordist - d, 1/d)/neighbordist);
+        otherPos.mult((1/d)/neighbordist);
         sum.add(otherPos); // Add position
         count++;
       }
@@ -221,7 +215,20 @@ class Boid {
       return seek(sum);  // Steer towards the position
     } 
     else {
-      return new PVector(0, 0);
+      return new PVector(0, 0, 0);
     }
+  }
+  
+  void setActive(boolean state) {
+    active = state;
+  }
+  
+  boolean isWithinRange(float distance) {
+    return (distance > 0);
+  };
+  
+  boolean canSeeBoid(Boid otherBoid) {
+    PVector positionDiff = otherBoid.position.copy().sub(position);
+    return PVector.angleBetween(velocity, positionDiff) < HALF_PI;
   }
 }

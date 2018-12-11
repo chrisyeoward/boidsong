@@ -1,7 +1,6 @@
 var numOscillators = 0;
 var oscPatches = new Array(64);
 var networkReceiver;
-var networkSender;
 
 var unjoiner;
 var joiner;
@@ -10,7 +9,7 @@ var hoaOptim;
 var hoaDecoder;
 var hoaDac;
 
-var MAX_OCTAVE = 5;
+var MAX_OCTAVE = 4;
 
 var NOTE_B0 = 31;
 var NOTE_C1 = 33;
@@ -127,7 +126,7 @@ function oscPatch(parentPatch, index) {
 	var top = 320 + (Math.floor(index / rowWidth) * 200);
 	var p = parentPatch;
 	var octave = Math.floor(index / scale.length) + 1;
-	octave = octave % MAX_OCTAVE;
+	octave = octave % (MAX_OCTAVE + 1);
  	var carrierFreq = scale[index % scale.length] * Math.pow(2, octave);
 	
 	var modulatorFreq = Math.random()*8 + 1;
@@ -147,16 +146,8 @@ function oscPatch(parentPatch, index) {
 		signalMultiplier: signalMultiplier,
 		signalToFloat: signalToFloat,
 		connect: function(){
-			this.oscMessage = parentPatch.newdefault(left, top + 110, "message");// "/boidsong/oscs/" + index + "/amp", "$1");
-			
-			this.oscMessage.set("/boidsong/oscs/amp", index, modulatorFreq);
-			this.oscMessage.size(150, 50);
-			
-			this.ampSend = parentPatch.newdefault(left, top + 140, "s", "amp");
 			this.signalSend = parentPatch.newdefault(left + 60, top + 80, "s", "signal/" + index);
 						
-			parentPatch.connect(this.signalToFloat, 1, this.oscMessage, 0);
-			parentPatch.connect(this.oscMessage, 0, this.ampSend, 0);
 			parentPatch.connect(this.signalMultiplier, 0, hoaMap, index);
 			parentPatch.connect(this.signalMultiplier, 0, this.signalSend, 0);
 
@@ -210,8 +201,6 @@ function oscillators(val)
 		
 		if(numOscillators) {
 			this.patcher.remove(networkReceiver);
-			this.patcher.remove(networkSender);
-			this.patcher.remove(amplitudeReceiver);
 			this.patcher.remove(unjoiner);
       		this.patcher.remove(joiner);
       		this.patcher.remove(hoaMap);
@@ -222,11 +211,7 @@ function oscillators(val)
 
 		numOscillators = arguments[0];
 		
-		if(numOscillators) {
-			amplitudeReceiver = this.patcher.newdefault(20, 220, "r", "amp");
-			networkSender = this.patcher.newdefault(20, 250, "udpsend", "127.0.0.1", "6448");
-			this.patcher.connect(amplitudeReceiver, 0, networkSender, 0);
-			
+		if(numOscillators) {			
 			patchHoaAmbisonics();
 		}
 
