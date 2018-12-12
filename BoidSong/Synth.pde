@@ -44,7 +44,7 @@ public class SynthVoice {
   NoteState state; 
   SawOsc osc;
   LowPass lowPass;
-  static final float sawGain = 0.1;
+  static final float sawGain = 0.15;
 
   WhiteNoise noise;
   BandPass bandPass; 

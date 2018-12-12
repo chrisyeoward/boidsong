@@ -5,7 +5,7 @@ class BoidController {
   float boundSphereRadius;
   HashSet<Boid> attractingBoids;
   
-  PVector camera = new PVector(0,0,520);
+  PVector camera = new PVector(0,0,570);
   PVector orbitPoint = camera.copy().sub(new PVector(0,0,10));
    
   OscP5 oscP5;
@@ -167,7 +167,7 @@ class BoidController {
     
     msg.add(noteIndex + 1);
     msg.add("polar");
-    msg.add(r/20);
+    msg.add(r/25);
     msg.add(azimuth);
     msg.add(elevation);
     

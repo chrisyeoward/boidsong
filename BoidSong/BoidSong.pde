@@ -19,9 +19,11 @@ int COLOR_SCALE = 360;
 
 PFont f;
 
+char[] keys = {'a', 's' , 'd', 'f', 'g', 'h', 'j'};
+
 void setup() {
-  size(1000, 800, P3D);
-  //fullScreen(P3D);
+  //size(1000, 800, P3D);
+  fullScreen(P3D);
 
   oscP5 = new OscP5(this, 9000);
   dest = new NetAddress("127.0.0.1",6448);
@@ -75,7 +77,18 @@ void draw() {
   popMatrix();
   
   fill(255);
+  textSize(16);
   text("Octave: " + currentOctave, 20, 30);
+  
+  textSize(14);
+  for (int i = 0; i < notes.length; i++) {
+    fill((i * 3*COLOR_SCALE/4) / notes.length, 0.65*COLOR_SCALE, 0.65*COLOR_SCALE);
+    text(keys[i] + ": " + notes[i].toString(),  20, 60 + i * 20 );
+  }
+ 
+  fill(255, 200);
+  text("</>: -/+ octave", 20, 200);
+  text("space: retain boids", 20, 220);
   synth.play();
  }
  

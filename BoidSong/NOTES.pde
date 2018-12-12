@@ -98,6 +98,14 @@ NOTE_DS8 (4978);
   public float getFreq() {
     return this.freq;
   }
+  
+  @Override
+  public String toString() {
+    return this.name()
+    .split("_")[1]
+    .replaceAll("[0-9]", "")
+    .replaceAll("S", "#");
+  }
 }
 
 public static Note cMinorNotes[] = {
