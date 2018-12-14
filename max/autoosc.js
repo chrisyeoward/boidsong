@@ -43,16 +43,19 @@ var cPentatonicNotes = [
   NOTE_AS2,
 ];
 
+// creates an oscillator module with carrier and amp mod
 function oscPatch(parentPatch, index) {
-	var scale = cMinorNotes;
+	var scale = cMinorNotes; // set which key to use
 	var rowWidth = scale.length;
 	var left = 150 + (index % rowWidth) * 200;
 	var top = 320 + (Math.floor(index / rowWidth) * 100);
+	
 	var octave = Math.floor(index / scale.length) + 1;
 	octave = octave % (MAX_OCTAVE + 1);
  	var carrierFreq = scale[index % scale.length] * Math.pow(2, octave);
-	var modulatorFreq = Math.random()*8 + 1;
 	var carrier = parentPatch.newdefault(left,top,"cycle~", carrierFreq);
+	
+	var modulatorFreq = Math.random()*8 + 1;
 	var modDutyCycle = Math.random();
 	var modulator = parentPatch.newdefault(left + 30,top + 20,"tri~", modulatorFreq, modDutyCycle);
 	var signalMultiplier = parentPatch.newdefault(left, top + 50, "*~");
@@ -66,7 +69,9 @@ function oscPatch(parentPatch, index) {
 		carrier: carrier,
 		modulator: modulator,
 		signalMultiplier: signalMultiplier,
-		remove: function() {
+
+		// include function to be able to disconnect patch
+		remove: function() { 
 			parentPatch.remove(this.ampSend);
 			parentPatch.remove(this.carrier);
 			parentPatch.remove(this.modulator);
@@ -75,6 +80,7 @@ function oscPatch(parentPatch, index) {
 	}
 }
 
+// patches the hoa ambisonics, once
 function patchHoaAmbisonics() {
 	var top = 80;
 	var left = 250;
@@ -103,12 +109,13 @@ function oscillators(val)
 {
 	if(arguments.length) // bail if no arguments
 	{
-		// parse arguments
+		// remove all oscillators to begin
 		for(var i=0;i<numOscillators;i++)
 		{
 			oscPatches[i].remove();
 		}
-
+		
+		// if more than 0 oscillators, remove hoa ambisonics patches
 		if(numOscillators) {
 			this.patcher.remove(networkReceiver);
 			this.patcher.remove(unjoiner);
@@ -120,11 +127,13 @@ function oscillators(val)
 		}
 
 		numOscillators = arguments[0];
-
+		
+		// patch ambisonics 
 		if(numOscillators) {
 			patchHoaAmbisonics();
 		}
-
+		
+		// for all the oscillators, create module
 		for(var i=0;i<numOscillators;i++)
 		{
 			oscPatches[i] = new oscPatch(this.patcher, i);
