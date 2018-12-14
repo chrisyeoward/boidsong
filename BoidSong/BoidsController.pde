@@ -1,9 +1,8 @@
 import java.util.*;
 
-class BoidController {
+class BoidsController {
   ArrayList<Boid> boids;
   float boundSize;
-  HashSet<Boid> attractingBoids;
   
   PVector camera = new PVector(0,0,530);
   PVector orbitPoint = camera.copy().sub(new PVector(0,0,10));
@@ -13,71 +12,25 @@ class BoidController {
   
   boolean holdingBoids = false;
   
-  BoidController(ArrayList<Boid> boids, float boundSize,  OscP5 oscChannel, NetAddress dest) {
+  BoidsController(ArrayList<Boid> boids, float boundSize,  OscP5 oscChannel, NetAddress dest) {
     this.boids = boids;
     this.boundSize = boundSize;
-    this.attractingBoids = new HashSet<Boid>();
     oscP5 = oscChannel;
     netDest = dest;
-  }
-  
-  void applyForce(Boid boid, PVector force) {
-    boid.applyForce(force);
-  }
-  
-  void pullBoid(int noteIndex) {
-    for(int i = noteIndex; i < boids.size(); i = i + (MAX_OCTAVE + 1) * notes.length) {
-      Boid boid = boids.get(i);
-      if(!attractingBoids.contains(boid) && boid.position.z < orbitPoint.z) {
-        attractingBoids.add(boid);
-        break;
-      }
-    }
-  }
-  
-  void releaseBoid(Boid boid) {
-    if(!holdingBoids) {
-      attractingBoids.remove(boid);
-    }
-  }
-  
-  void releaseAllBoids() {
-    attractingBoids.clear();
   }
   
   void runBoids(){
     for(int boidIndex = 0; boidIndex < boids.size(); boidIndex++) {
       Boid thisBoid = boids.get(boidIndex);
         
-      PVector boundsForce = bound(thisBoid);
-      boundsForce.mult(1.0);
-      applyForce(thisBoid, boundsForce);
-      
-      if(attractingBoids.contains(thisBoid)) {  
-        PVector pullForce = orbitPoint.copy()
-          .sub(thisBoid.position)
-          .normalize();
-        pullForce.mult(0.15);
-        //PVector pullForce = thisBoid.seek(orbitPoint);
-        //pullForce.mult(6.0);
-        applyForce(thisBoid, pullForce);
-        //thisBoid.seek(orbitPoint);
-        if(thisBoid.position.z > orbitPoint.z) {
-          releaseBoid(thisBoid);
-          thisBoid.setActive(false);
-        }
-        thisBoid.setActive(true);
-      } else {
-        thisBoid.setActive(false);
-      }
-      
+      constrainBoid(thisBoid);
+      pullBoid(thisBoid);
       thisBoid.run(boids);
       dispatchPosition(thisBoid, boidIndex);
     } 
   }
     
-  PVector bound(Boid boid) {
-   
+  PVector bound(Boid boid) { 
     float boundMag = 0.005;
     PVector boundsForce = new PVector(0,0,0);
     if(boid.position.x < -boundSize) {
@@ -98,6 +51,51 @@ class BoidController {
       boundsForce.add(0,-boundMag,0);
     } 
     return boundsForce;
+  }
+  
+  void pullBoid(int noteIndex) {
+    for(int i = noteIndex; i < boids.size(); i = i + (MAX_OCTAVE + 1) * notes.length) {
+      Boid boid = boids.get(i);
+      if(!boid.active && boid.position.z < orbitPoint.z) {
+        boid.setActive(true);
+        break;
+      }
+    }
+  }
+  
+  void releaseBoid(Boid boid) {
+    if(!holdingBoids) {
+      boid.setActive(false);
+    }
+  }
+  
+  void releaseAllBoids() {
+    for(Boid boid : boids) {
+      boid.setActive(false);
+    }
+  }
+  
+  void constrainBoid(Boid boid) {
+    PVector boundsForce = bound(boid);
+    boundsForce.mult(1.0);
+    boid.applyForce(boundsForce);
+  }
+  
+  void pullBoid(Boid boid) {
+    if(boid.active) {  
+        PVector pullForce = orbitPoint.copy()
+          .sub(boid.position)
+          .normalize();
+        pullForce.mult(0.15);
+        //PVector pullForce = thisBoid.seek(orbitPoint);
+        //pullForce.mult(6.0);
+        
+        boid.applyForce(pullForce);
+        
+        if(boid.position.z > orbitPoint.z) {
+          releaseBoid(boid);
+        }
+      }
   }
   
   void dispatchPosition(Boid boid, int index) {

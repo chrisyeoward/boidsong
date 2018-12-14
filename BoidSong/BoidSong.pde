@@ -6,8 +6,7 @@ NetAddress dest;
 
 Synth synth;
 
-Boid boid;
-BoidController boidController;
+BoidsController boidsController;
 int BOID_COUNT = 100;
 
 Note notes[] = cMinorNotes;
@@ -45,7 +44,7 @@ void setup() {
     textFont(f);
   }
   int boundRadius = height;
-  boidController = new BoidController(boids, boundRadius, oscP5, dest);
+  boidsController = new BoidsController(boids, boundRadius, oscP5, dest);
   
   synth = new Synth(this);
 }
@@ -54,17 +53,7 @@ void drawCanvas(){
   background(#090C1A); 
 }
 
-void draw() {
-  //line();
-  drawCanvas();
-  //boid.run();
-     
-  pushMatrix();
-  translate(width/2, height/2, 100);
-    boidController.runBoids();
-
-  popMatrix();
-  
+void drawInstructions() {
   fill(255);
   textSize(16);
   text("Octave: " + currentOctave, 20, 30);
@@ -78,19 +67,29 @@ void draw() {
   fill(255, 200);
   text("</>: -/+ octave", 20, 200);
   text("space: retain boids", 20, 220);
+}
+
+void draw() {
+  drawCanvas();     
+  pushMatrix();
+  translate(width/2, height/2, 100);
+    boidsController.runBoids();
+
+  popMatrix();
+  drawInstructions();
   synth.play();
  }
  
 void keyPressed() {
   int note = keyToNoteIndex(key);
   if(note != -1) {
-    boidController.pullBoid(note + currentOctave * notes.length);
+    boidsController.pullBoid(note + currentOctave * notes.length);
     synth.noteOn(notes[note], currentOctave);
   };
   handleOctaveChange(key);
   switch(key) {
     case ' ':
-      boidController.holdingBoids = true;
+      boidsController.holdingBoids = true;
   }
 }
 
@@ -103,8 +102,8 @@ void keyReleased(){
   
   switch(key) {
     case ' ':
-      boidController.releaseAllBoids();
-      boidController.holdingBoids = false;
+      boidsController.releaseAllBoids();
+      boidsController.holdingBoids = false;
   }
 }
 
