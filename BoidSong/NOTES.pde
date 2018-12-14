@@ -103,7 +103,6 @@ NOTE_DS8 (4978);
   public String toString() {
     return this.name()
     .split("_")[1]
-    .replaceAll("[0-9]", "")
     .replaceAll("S", "#");
   }
 }

@@ -47,11 +47,11 @@ class Boid {
     acceleration.add(force);
   }
   
-  // We accumulate a new acceleration each time based on three rules
   void flock(ArrayList<Boid> boids) {
     PVector sep = separate(boids);   // Separation
     PVector ali = align(boids);      // Alignment
     PVector coh = cohesion(boids);   // Cohesion
+    
     // Arbitrarily weight these forces
     sep.mult(2.5);
     ali.mult(1.0);
@@ -67,9 +67,8 @@ class Boid {
     // Update velocity
     velocityDiff = velocity.copy();
     velocity.add(acceleration);
+    
     // Limit speed
-    //velocity.normalize();
-    //velocity.mult(maxspeed);
     velocity.limit(maxspeed);
     if(velocity.mag() < minSpeed) velocity.setMag(minSpeed);
     position.add(velocity);
@@ -81,12 +80,7 @@ class Boid {
   PVector seek(PVector target) {
     PVector desired = PVector.sub(target, position);  // A vector pointing from the position to the target
     // Scale to maximum speed
-    desired.normalize();
-    desired.mult(maxspeed);
-
-    // Above two lines of code below could be condensed with new PVector setMag() method
-    // Not using this method until Processing.js catches up
-    // desired.setMag(maxspeed);
+     desired.setMag(maxspeed);
 
     // Steering = Desired minus Velocity
     PVector steer = PVector.sub(desired, velocity);
@@ -100,7 +94,6 @@ class Boid {
     PVector leftWing = perpForceVel.copy().sub(normVel);
     PVector rightWing = perpForceVel.copy().mult(-1).sub(normVel);
     
-    //updateColour();
     float intensity = active ? COLOR_SCALE : defaultColourIntensity;
     baseColour = color(hue, intensity, intensity);
     
@@ -137,7 +130,7 @@ class Boid {
     for (Boid other : boids) {
       float d = PVector.dist(position, other.position);
       // If the distance is greater than 0 and less than an arbitrary amount (0 when you are yourself)
-      if ((d > 0) && canSeeBoid(other)) {
+      if ((d > 0) && (d < desiredseparation) && canSeeBoid(other)) {
         // Calculate vector pointing away from neighbor
         PVector diff = PVector.sub(position, other.position);
         diff.normalize();
@@ -147,15 +140,10 @@ class Boid {
         count++;            // Keep track of how many
       }
     }
-    // Average -- divide by how many
-    if (count > 0) {
-      steer.div((float)count);
-    }
 
     // As long as the vector is greater than 0
-    if (steer.mag() > 0) {
-      // First two lines of code below could be condensed with new PVector setMag() method
-      // Not using this method until Processing.js catches up
+    if (count > 0) {
+      steer.div((float)count);
       steer.setMag(maxspeed);
 
       // Implement Reynolds: Steering = Desired - Velocity
@@ -169,23 +157,23 @@ class Boid {
   // For every nearby boid in the system, calculate the average velocity
   PVector align (ArrayList<Boid> boids) {
     float neighbordist = 50;
-    PVector sum = new PVector(0, 0, 0);
+    PVector steer = new PVector(0, 0, 0);
     int count = 0;
     for (Boid other : boids) {
       float d = PVector.dist(position, other.position);
-      if ((d > 0) && (d < neighbordist) &&  canSeeBoid(other)) {
+      if ((d > 0) && (d < neighbordist) && canSeeBoid(other)) {
         PVector otherVel = other.velocity.copy();
         otherVel.mult(max(neighbordist - d, 0)/neighbordist);
-        sum.add(otherVel);     
+        steer.add(otherVel);     
         count++;
       }
     }
     if (count > 0) {
-      sum.div((float)count);
-      sum.setMag(maxspeed);
+      steer.div((float)count);
+      steer.setMag(maxspeed);
 
       // Implement Reynolds: Steering = Desired - Velocity
-      PVector steer = PVector.sub(sum, velocity);
+      steer.sub(velocity);
       steer.limit(maxforce);
       return steer;
     } 
@@ -204,8 +192,8 @@ class Boid {
       float d = PVector.dist(position, other.position);
       if ((d > 0) && canSeeBoid(other)) {
         PVector otherPos = other.position.copy();
-        //otherPos.mult(max(neighbordist - d, 1/d)/neighbordist);
-        otherPos.mult((1/d)/neighbordist);
+        otherPos.mult(max(neighbordist - d, 0)/neighbordist);
+        //otherPos.mult((1/d)/neighbordist);
         sum.add(otherPos); // Add position
         count++;
       }
