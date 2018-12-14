@@ -18,8 +18,6 @@ int COLOR_SCALE = 360;
 
 PFont f;
 
-char[] keys = {'a', 's' , 'd', 'f', 'g', 'h', 'j'};
-
 void setup() {
   size(1000, 800, P3D);
   //fullScreen(P3D);
@@ -43,10 +41,12 @@ void setup() {
     f = createFont("Arial",16,true);
     textFont(f);
   }
-  int boundRadius = height;
-  boidsController = new BoidsController(boids, boundRadius, oscP5, dest);
   
-  synth = new Synth(this);
+  PVector cameraPosition = new PVector(0,0,530);
+  int boundRadius = height;
+  boidsController = new BoidsController(boids, boundRadius, cameraPosition, oscP5, dest);
+  
+  synth = new Synth(this, 3);
 }
 
 void drawCanvas(){
@@ -59,6 +59,7 @@ void drawInstructions() {
   text("Octave: " + currentOctave, 20, 30);
   
   textSize(14);
+  char[] keys = {'a', 's' , 'd', 'f', 'g', 'h', 'j'};
   for (int i = 0; i < notes.length; i++) {
     fill((i * 3*COLOR_SCALE/4) / notes.length, 0.65*COLOR_SCALE, 0.65*COLOR_SCALE);
     text(keys[i] + ": " + notes[i].toString().replaceAll("[0-9]", ""),  20, 60 + i * 20 );
@@ -73,8 +74,7 @@ void draw() {
   drawCanvas();     
   pushMatrix();
   translate(width/2, height/2, 100);
-    boidsController.runBoids();
-
+  boidsController.runBoids();
   popMatrix();
   drawInstructions();
   synth.play();
@@ -87,23 +87,19 @@ void keyPressed() {
     synth.noteOn(notes[note], currentOctave);
   };
   handleOctaveChange(key);
-  switch(key) {
-    case ' ':
-      boidsController.holdingBoids = true;
+  if(key == ' ') {
+    boidsController.holdingBoids = true;
   }
 }
 
 void keyReleased(){
   int note = keyToNoteIndex(key);
   if(note != -1) {
-    //boidController.releaseBoid(note + currentOctave * notes.length);
     synth.noteOff(notes[note]);
   }
   
-  switch(key) {
-    case ' ':
-      boidsController.releaseAllBoids();
-      boidsController.holdingBoids = false;
+  if(key == ' ') {
+    boidsController.releaseAllBoids();
   }
 }
 
@@ -111,7 +107,7 @@ void handleOctaveChange(char key) {
   switch(key) {
     case '<':
     case ',':
-      if (currentOctave > MIN_OCTAVE) currentOctave = currentOctave - 1;
+      if (currentOctave > MIN_OCTAVE) currentOctave--;
       break;
     case '>':
     case '.':

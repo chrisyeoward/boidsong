@@ -11,15 +11,10 @@ class Boid {
   float minSpeed = 1.5;
   float maxspeed = 3;
   
-  color baseColour;
   float hue;
-  float defaultColourIntensity = 0.65*COLOR_SCALE;
-  float colourIntensity = defaultColourIntensity;
   boolean active;
-  float colourPhaseShift = 0;
-  float colourFreq = 0.01;
   
-    Boid(float x, float y, float z, float hue) {
+  Boid(float x, float y, float z, float hue) {
     acceleration = new PVector(0, 0, 0);
     this.hue = hue;
     maxforce = 0.04;
@@ -38,12 +33,11 @@ class Boid {
   }
   
   void reset(){
-    // Reset accelertion to 0 each cycle
+    // Reset acceleration to 0 each cycle
     acceleration.mult(0);
   }
 
   void applyForce(PVector force) {
-    // We could add mass here if we want A = F / M
     acceleration.add(force);
   }
   
@@ -56,6 +50,7 @@ class Boid {
     sep.mult(2.5);
     ali.mult(1.0);
     coh.mult(1.0);
+    
     // Add the force vectors to acceleration
     applyForce(sep);
     applyForce(ali);
@@ -90,12 +85,14 @@ class Boid {
   
   void render() {    
     PVector normVel = velocity.copy().normalize();
-    PVector perpForceVel = normVel.copy().cross(velocityDiff.copy().add(new PVector(0,0.1,0))).setMag(2);
+    PVector perpForceVel = normVel.copy()
+      .cross(velocityDiff.copy().add(new PVector(0,0.1,0)))
+      .setMag(2);
     PVector leftWing = perpForceVel.copy().sub(normVel);
     PVector rightWing = perpForceVel.copy().mult(-1).sub(normVel);
     
-    float intensity = active ? COLOR_SCALE : defaultColourIntensity;
-    baseColour = color(hue, intensity, intensity);
+    float intensity = active ? COLOR_SCALE : 0.65*COLOR_SCALE;
+    color baseColour = color(hue, intensity, intensity);
     
     pushMatrix();
     translate(position.x, position.y, position.z);
@@ -210,10 +207,6 @@ class Boid {
   void setActive(boolean state) {
     active = state;
   }
-  
-  boolean isWithinRange(float distance) {
-    return (distance > 0);
-  };
   
   boolean canSeeBoid(Boid otherBoid) {
     PVector positionDiff = otherBoid.position.copy().sub(position);

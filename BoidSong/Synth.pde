@@ -1,12 +1,19 @@
 import processing.sound.*;
 
-int NUMBER_OF_VOICES = 3;
+public static enum NoteState {
+  ATTACK,
+  DECAY,
+  SUSTAIN,
+  RELEASE,
+  OFF
+}
 
 class Synth {  
-  SynthVoice[] voices = new SynthVoice[NUMBER_OF_VOICES];
+  SynthVoice[] voices;
    
-  Synth(PApplet sketch) {
-    for(int i = 0; i < NUMBER_OF_VOICES; i++) {
+  Synth(PApplet sketch, int numberOfVoices) {
+    voices = new SynthVoice[numberOfVoices];
+    for(int i = 0; i < numberOfVoices; i++) {
       voices[i] = new SynthVoice(sketch);
     }    
   }
@@ -122,12 +129,4 @@ public class SynthVoice {
     SynthVoice s = (SynthVoice) o;
     return note == s.note && octave == s.octave;
   }
-}
-
-public static enum NoteState {
-  ATTACK,
-  DECAY,
-  SUSTAIN,
-  RELEASE,
-  OFF
 }

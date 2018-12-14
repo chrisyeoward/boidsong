@@ -4,15 +4,18 @@ class BoidsController {
   ArrayList<Boid> boids;
   float boundSize;
   
-  PVector camera = new PVector(0,0,530);
-  PVector orbitPoint = camera.copy().sub(new PVector(0,0,10));
+  PVector camera;
+  PVector orbitPoint;
    
   OscP5 oscP5;
   NetAddress netDest;
   
   boolean holdingBoids = false;
   
-  BoidsController(ArrayList<Boid> boids, float boundSize,  OscP5 oscChannel, NetAddress dest) {
+  BoidsController(ArrayList<Boid> boids, float boundSize, PVector camera, OscP5 oscChannel, NetAddress dest) {
+    this.camera = camera;
+    this.orbitPoint = camera.copy().sub(new PVector(0,0,10));
+   
     this.boids = boids;
     this.boundSize = boundSize;
     oscP5 = oscChannel;
@@ -73,6 +76,7 @@ class BoidsController {
     for(Boid boid : boids) {
       boid.setActive(false);
     }
+    holdingBoids = false;
   }
   
   void constrainBoid(Boid boid) {
