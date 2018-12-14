@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.18 (TeX Live 2017) (preloaded format=pdflatex 2017.11.9)  13 DEC 2018 15:41
+This is pdfTeX, Version 3.14159265-2.6-1.40.18 (TeX Live 2017) (preloaded format=pdflatex 2017.11.9)  14 DEC 2018 15:25
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -630,78 +630,57 @@ Package caption Info: Begin \AtBeginDocument code.
 Package caption Info: listings package is loaded.
 Package caption Info: End \AtBeginDocument code.
 \c@lstlisting=\count124
-
-
-LaTeX Warning: Reference `' on page 1 undefined on input line 62.
-
-
-LaTeX Warning: Reference `' on page 1 undefined on input line 65.
-
-LaTeX Font Info:    Try loading font information for U+msa on input line 70.
-(/usr/local/texlive/2017/texmf-dist/tex/latex/amsfonts/umsa.fd
+ <tech_diag.jpeg, id=1, 967.615pt x 257.96375pt>
+File: tech_diag.jpeg Graphic file (type jpg)
+ <use tech_diag.jpeg>
+Package pdftex.def Info: tech_diag.jpeg used on input line 66.
+(pdftex.def)             Requested size: 252.0pt x 67.1792pt.
+ <boid.jpeg, id=2, 214.8025pt x 120.45pt>
+File: boid.jpeg Graphic file (type jpg)
+ <use boid.jpeg>
+Package pdftex.def Info: boid.jpeg used on input line 76.
+(pdftex.def)             Requested size: 100.79846pt x 56.52327pt.
+LaTeX Font Info:    Try loading font information for U+msa on input line 84.
+ (/usr/local/texlive/2017/texmf-dist/tex/latex/amsfonts/umsa.fd
 File: umsa.fd 2013/01/14 v3.01 AMS symbols A
 )
-LaTeX Font Info:    Try loading font information for U+msb on input line 70.
+LaTeX Font Info:    Try loading font information for U+msb on input line 84.
  (/usr/local/texlive/2017/texmf-dist/tex/latex/amsfonts/umsb.fd
 File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 ) [1{/usr/local/texlive/2017/texmf-var/fonts/map/pdftex/updmap/pdftex.map}
 
 
-] [2] (/usr/local/texlive/2017/texmf-dist/tex/latex/listings/lstlang1.sty
-File: lstlang1.sty 2015/06/04 1.6 listings language file
-) (/usr/local/texlive/2017/texmf-dist/tex/latex/listings/lstlang1.sty
-File: lstlang1.sty 2015/06/04 1.6 listings language file
-) (/usr/local/texlive/2017/texmf-dist/tex/latex/listings/lstmisc.sty
-File: lstmisc.sty 2015/06/04 1.6 (Carsten Heinz)
-)
-LaTeX Font Info:    Try loading font information for OT1+pcr on input line 125.
- (/usr/local/texlive/2017/texmf-dist/tex/latex/psnfss/ot1pcr.fd
-File: ot1pcr.fd 2001/06/04 font definitions for OT1/pcr.
-)
-Overfull \hbox (41.60278pt too wide) in paragraph at lines 134--135
-[][][][][][] 
- []
-
-
-Overfull \hbox (142.40381pt too wide) in paragraph at lines 138--139
-[][][][][][][]  
- []
-
-
-Overfull \hbox (23.52492pt too wide) in paragraph at lines 179--182
+ <./tech_diag.jpeg>] [2 <./boid.jpeg>]
+Overfull \hbox (23.52492pt too wide) in paragraph at lines 122--125
 []\OT1/ptm/m/n/8 Weisstein, Eric W. \OT1/ptm/m/it/8 Eu-ler An-gles \OT1/ptm/m/n/8 http://mathworld.wolfram.com/EulerAngles.html 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 185--189
+Underfull \hbox (badness 10000) in paragraph at lines 128--132
 []\OT1/ptm/m/n/8 Vince, John. \OT1/ptm/m/it/8 Quater-nions for Com-puter Graph-ics
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 191--194
+Underfull \hbox (badness 10000) in paragraph at lines 134--137
 []\OT1/ptm/m/n/8 Pierre Guil-lot, Eliott Paris, Julien Co-lafrancesco \OT1/ptm/m/it/8 HoaL-i-brary
  []
 
 [3
 
-] (./boidsong.aux)
-
-LaTeX Warning: There were undefined references.
-
- ) 
+] (./boidsong.aux) ) 
 Here is how much of TeX's memory you used:
- 6622 strings out of 492995
- 97773 string characters out of 6132704
- 210201 words of memory out of 5000000
- 10082 multiletter control sequences out of 15000+600000
- 39597 words of font info for 86 fonts, out of 8000000 for 9000
+ 6079 strings out of 492995
+ 91811 string characters out of 6132704
+ 164651 words of memory out of 5000000
+ 9558 multiletter control sequences out of 15000+600000
+ 33581 words of font info for 69 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 42i,8n,60p,1357b,1248s stack positions out of 5000i,500n,10000p,200000b,80000s
-{/usr/local/texlive/2017/texmf-dist/fonts/enc/dvips/base/8r.enc}</usr/local/texlive/2017/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></usr/local/texlive/2017/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/local/texlive/2017/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy7.pfb></usr/local/texlive/2017/texmf-dist/fonts/type1/urw/courier/ucrr8a.pfb></usr/local/texlive/2017/texmf-dist/fonts/type1/urw/times/utmb8a.pfb></usr/local/texlive/2017/texmf-dist/fonts/type1/urw/times/utmr8a.pfb></usr/local/texlive/2017/texmf-dist/fonts/type1/urw/times/utmri8a.pfb>
-Output written on boidsong.pdf (3 pages, 87492 bytes).
+ 42i,6n,40p,1362b,257s stack positions out of 5000i,500n,10000p,200000b,80000s
+{/usr/local/texlive/2017/texmf-dist/fonts/enc/dvips/base/8r.enc}</usr/local/texlive/2017/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></usr/local/texlive/2017/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/local/texlive/2017/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy7.pfb></usr/local/texlive/2017/texmf-dist/fonts/type1/urw/times/utmr8a.pfb></usr/local/texlive/2017/texmf-dist/fonts/type1/urw/times/utmri8a.pfb>
+Output written on boidsong.pdf (3 pages, 177188 bytes).
 PDF statistics:
- 43 PDF objects out of 1000 (max. 8388607)
- 30 compressed objects within 1 object stream
+ 37 PDF objects out of 1000 (max. 8388607)
+ 24 compressed objects within 1 object stream
  0 named destinations out of 1000 (max. 500000)
- 1 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 11 words of extra memory for PDF output out of 10000 (max. 10000000)
 

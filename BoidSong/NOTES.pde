@@ -1,3 +1,5 @@
+
+// note enum, defines the frequencies for the notes used
 public static enum Note {
   NOTE_C2  (65),
   NOTE_CS2 (69),
@@ -23,7 +25,7 @@ public static enum Note {
   }
   
   @Override
-  public String toString() {
+  public String toString() { // used for displaying the notes on the screen
     return this.name()
     .split("_")[1]
     .replaceAll("S", "#");

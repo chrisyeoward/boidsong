@@ -1,5 +1,11 @@
-// The Boid class
 
+/* Boid Class
+The boid knows about it's own location, velocity and rendering,
+as well as the rest of the flock. It updates it's velocity based
+on the position and velocity of the rest of the boids.
+
+Class adapted from the Processing flocking example.
+*/
 class Boid {
   PVector position;
   PVector velocity;
@@ -12,22 +18,22 @@ class Boid {
   float maxspeed = 3;
   
   float hue;
-  boolean active;
+  boolean active; // when true the boid will glow brighter
   
   Boid(float x, float y, float z, float hue) {
     acceleration = new PVector(0, 0, 0);
     this.hue = hue;
     maxforce = 0.04;
     
-    velocity = PVector.random3D().mult(maxspeed) ;
+    velocity = PVector.random3D().setMag(maxspeed) ;
 
     position = new PVector(x, y, z);
     r = 3.0;
   }
 
   void run(ArrayList<Boid> boids) {
-    flock(boids);
-    render();
+    flock(boids); // calculates forces applied by rest of flock
+    render(); 
     update();
     reset();
   }
@@ -41,23 +47,7 @@ class Boid {
     acceleration.add(force);
   }
   
-  void flock(ArrayList<Boid> boids) {
-    PVector sep = separate(boids);   // Separation
-    PVector ali = align(boids);      // Alignment
-    PVector coh = cohesion(boids);   // Cohesion
-    
-    // Arbitrarily weight these forces
-    sep.mult(2.5);
-    ali.mult(1.0);
-    coh.mult(1.0);
-    
-    // Add the force vectors to acceleration
-    applyForce(sep);
-    applyForce(ali);
-    applyForce(coh);
-  }
-
-  // Method to update position
+  // 
   void update() {
     // Update velocity
     velocityDiff = velocity.copy();
@@ -66,37 +56,27 @@ class Boid {
     // Limit speed
     velocity.limit(maxspeed);
     if(velocity.mag() < minSpeed) velocity.setMag(minSpeed);
+    
+    // update position based on velocity
     position.add(velocity);
+    
     velocityDiff.sub(velocity);
-  }
-
-  // A method that calculates and applies a steering force towards a target
-  // STEER = DESIRED MINUS VELOCITY
-  PVector seek(PVector target) {
-    PVector desired = PVector.sub(target, position);  // A vector pointing from the position to the target
-    // Scale to maximum speed
-     desired.setMag(maxspeed);
-
-    // Steering = Desired minus Velocity
-    PVector steer = PVector.sub(desired, velocity);
-    steer.limit(maxforce);  // Limit to maximum steering force
-    return steer;
   }
   
   void render() {    
-    PVector normVel = velocity.copy().normalize();
+    PVector normVel = velocity.copy().normalize(); 
     PVector perpForceVel = normVel.copy()
       .cross(velocityDiff.copy().add(new PVector(0,0.1,0)))
-      .setMag(2);
-    PVector leftWing = perpForceVel.copy().sub(normVel);
-    PVector rightWing = perpForceVel.copy().mult(-1).sub(normVel);
+      .setMag(2); // returns a vector for the wings that is perpendicular to both the velocity and velocity differential
+    PVector leftWing = perpForceVel.copy().sub(normVel); // Vector describing left wing
+    PVector rightWing = perpForceVel.copy().mult(-1).sub(normVel); // Vector describing right wing
     
-    float intensity = active ? COLOR_SCALE : 0.65*COLOR_SCALE;
+    float intensity = active ? COLOR_SCALE : 0.65*COLOR_SCALE; // brighten boid if active
     color baseColour = color(hue, intensity, intensity);
     
     pushMatrix();
     translate(position.x, position.y, position.z);
-    if(active) {
+    if(active) { // render circle around boid if active
       noFill();
       stroke(baseColour, 70);
       ellipse(0, 0, 5*r, 5*r);
@@ -115,6 +95,46 @@ class Boid {
     vertex(0, 0, 0);
     endShape();
     popMatrix();
+  }
+  
+  void setActive(boolean state) {
+    active = state;
+  }
+  
+  // determines if the current boid can see the other boid, in order to update positions 
+  boolean canSeeBoid(Boid otherBoid) { 
+    PVector positionDiff = otherBoid.position.copy().sub(position);
+    return PVector.angleBetween(velocity, positionDiff) < HALF_PI;
+  }
+  
+  
+  /* Methods below adapted from the flocking example */
+  void flock(ArrayList<Boid> boids) {
+    PVector sep = separate(boids);   // Separation
+    PVector ali = align(boids);      // Alignment
+    PVector coh = cohesion(boids);   // Cohesion
+    
+    // Arbitrarily weight these forces
+    sep.mult(2.5);
+    ali.mult(1.0);
+    coh.mult(1.0);
+    
+    // Add the force vectors to acceleration
+    applyForce(sep);
+    applyForce(ali);
+    applyForce(coh);
+  }
+  
+  // A method that calculates and applies a steering force towards a target
+  PVector seek(PVector target) {
+    PVector desired = PVector.sub(target, position);  // A vector pointing from the position to the target
+    // Scale to maximum speed
+     desired.setMag(maxspeed);
+
+    // Steering = Desired minus Velocity
+    PVector steer = PVector.sub(desired, velocity);
+    steer.limit(maxforce);  // Limit to maximum steering force
+    return steer;
   }
 
   // Separation
@@ -202,14 +222,5 @@ class Boid {
     else {
       return new PVector(0, 0, 0);
     }
-  }
-  
-  void setActive(boolean state) {
-    active = state;
-  }
-  
-  boolean canSeeBoid(Boid otherBoid) {
-    PVector positionDiff = otherBoid.position.copy().sub(position);
-    return PVector.angleBetween(velocity, positionDiff) < HALF_PI;
   }
 }

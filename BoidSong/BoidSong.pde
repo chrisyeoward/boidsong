@@ -9,12 +9,12 @@ Synth synth;
 BoidsController boidsController;
 int BOID_COUNT = 100;
 
-Note notes[] = cMinorNotes;
+Note notes[] = cMinorNotes; // use c minor melodic scale
 int MIN_OCTAVE = 0;
 int MAX_OCTAVE = 4;
 int currentOctave = MIN_OCTAVE;
 
-int COLOR_SCALE = 360;
+int COLOR_SCALE = 360; // scale for colour setup 
 
 PFont f;
 
@@ -32,20 +32,26 @@ void setup() {
     int noteCount = notes.length;
     int hue = (i * 3*COLOR_SCALE/4) / noteCount;
     hue = hue % (3*COLOR_SCALE/4 - 1);
+    
+    // create new boid at random position
     boids.add(new Boid(
     random(-width/4,width/4), 
     random(-height/4, height/4), 
     random(-width/4, width/4),
-    hue));
+    hue)); 
     
     f = createFont("Arial",16,true);
     textFont(f);
   }
   
+  // define location of viewer in the canvas
   PVector cameraPosition = new PVector(0,0,530);
+  
+  // size of area in which boids can move, outside of this they will be force to turn around
   int boundRadius = height;
   boidsController = new BoidsController(boids, boundRadius, cameraPosition, oscP5, dest);
   
+  // create new 3 voice synth
   synth = new Synth(this, 3);
 }
 
@@ -71,10 +77,12 @@ void drawInstructions() {
 }
 
 void draw() {
-  drawCanvas();     
+  drawCanvas();    
+  
+  // translate matrix such that (0,0) is in centre of screen.
   pushMatrix();
-  translate(width/2, height/2, 100);
-  boidsController.runBoids();
+  translate(width/2, height/2, 100); // + 100 on the z axis brings boids closer, such that they will move closer to the camera, increasing immersion for the viewer
+  boidsController.runBoids(); // run the flocking and steering behaviours
   popMatrix();
   drawInstructions();
   synth.play();
@@ -82,20 +90,20 @@ void draw() {
  
 void keyPressed() {
   int note = keyToNoteIndex(key);
-  if(note != -1) {
-    boidsController.pullBoid(note + currentOctave * notes.length);
-    synth.noteOn(notes[note], currentOctave);
+  if(note != -1) { // if is one of the designated notes 
+    boidsController.pullBoid(note + currentOctave * notes.length); // pull boid corresponding to that note towards the camera
+    synth.noteOn(notes[note], currentOctave); // play that note corresponding to that index with the synth, at the current octave
   };
-  handleOctaveChange(key);
+  handleOctaveChange(key); 
   if(key == ' ') {
-    boidsController.holdingBoids = true;
+    boidsController.setHoldingBoids(true); // if spacebar pressed then retain boids closer to the camera
   }
 }
 
 void keyReleased(){
   int note = keyToNoteIndex(key);
   if(note != -1) {
-    synth.noteOff(notes[note]);
+    synth.noteOff(notes[note]); // octave information not required for key release 
   }
   
   if(key == ' ') {

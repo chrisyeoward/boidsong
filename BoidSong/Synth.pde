@@ -1,5 +1,6 @@
 import processing.sound.*;
 
+// note states
 public static enum NoteState {
   ATTACK,
   DECAY,
@@ -8,6 +9,7 @@ public static enum NoteState {
   OFF
 }
 
+// synth class, concerned with determining which voice should play which note 
 class Synth {  
   SynthVoice[] voices;
    
@@ -28,6 +30,8 @@ class Synth {
     }
   }
   
+  // stop playing a given note, regardless of octave 
+  // this means the same note can't be held down for multiple octaves, which is impossible for a laptop keyboard anyway
   void noteOff(Note note) {
     for(SynthVoice voice : voices) {
        if(voice.getNote().equals(note)) {
@@ -37,6 +41,7 @@ class Synth {
     }
   }
   
+  // play all voices
   void play() {
     for(SynthVoice voice : voices) {
        voice.play();
@@ -44,6 +49,8 @@ class Synth {
   }
 }
 
+// Voice class, controls the envelope of the oscillator, and it's frequency 
+// each voice has one LP filtered sawtooth and one BP filtered white noise for texture
 public class SynthVoice {
   Note note = notes[0];
   int octave = 0;
@@ -65,6 +72,7 @@ public class SynthVoice {
     return note;
   }
    
+   // setup oscillators
   SynthVoice(PApplet sketch) {
     osc = new SawOsc(sketch);
     osc.amp(amp);
@@ -80,6 +88,7 @@ public class SynthVoice {
     noise.play();
   }
   
+  // start playing a given note
   void noteOn(Note note, int octave) {
     this.note = note;
     float freq = note.getFreq() * (float) Math.pow(2,octave);
@@ -92,6 +101,7 @@ public class SynthVoice {
     state = NoteState.RELEASE;
   }
   
+  // cycle through ADSR envelope
   void play() {
     float attackRate =  0.5;
     float sustainValue = 0.4;
@@ -116,17 +126,8 @@ public class SynthVoice {
       default:
         amp = 0;
     }
-    osc.amp(amp*sawGain);
+    // set relative gains
+    osc.amp(amp*sawGain); 
     noise.amp(amp*noiseGain);
-  }
-  
-  @Override
-  public boolean equals(Object o) {
-    if (o == this) return true; 
-        
-    if (!(o instanceof SynthVoice)) return false; 
-     
-    SynthVoice s = (SynthVoice) o;
-    return note == s.note && octave == s.octave;
   }
 }
