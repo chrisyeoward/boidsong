@@ -21,9 +21,35 @@ export class Synth {
       },
     });
 
+    // Create single noise synth for texture
+    this.noiseSynth = new Tone.NoiseSynth({
+      noise: {
+        type: "white",
+      },
+      envelope: {
+        attack: 0.1,
+        decay: 0.2,
+        sustain: 0.4,
+        release: 0.8,
+      },
+      filter: {
+        type: "bandpass",
+        frequency: 1000,
+        Q: 1,
+      },
+    });
+
+    // Mix both synths
+    this.mainGain = new Tone.Gain(0.7); // Main sawtooth volume
+    this.noiseGain = new Tone.Gain(0.01); // Subtle noise volume
+
+    this.polySynth.connect(this.mainGain);
+    this.noiseSynth.connect(this.noiseGain);
+
     // Add some filtering to match Processing version
     this.filter = new Tone.Filter(2000, "lowpass");
-    this.polySynth.connect(this.filter);
+    this.mainGain.connect(this.filter);
+    this.noiseGain.connect(this.filter);
     this.filter.toDestination();
 
     // Track notes to handle keyboard repeat
@@ -45,18 +71,20 @@ export class Synth {
       return;
     }
 
-    // Trigger attack and track the note
+    // Trigger attack on both synths and track the note
     this.polySynth.triggerAttack(finalNote);
+    this.noiseSynth.triggerAttack(); // Noise doesn't need a note, just trigger
     this.activeNotes.add(finalNote);
     console.log(`Playing: ${finalNote}`);
   }
 
   noteOff(noteString) {
     // Find and release any octave of this note
-    const notePrefix = noteString.replace(/\d+$/, ''); // Remove octave number
+    const notePrefix = noteString.replace(/\d+$/, ""); // Remove octave number
     for (const activeNote of this.activeNotes) {
       if (activeNote.startsWith(notePrefix)) {
         this.polySynth.triggerRelease(activeNote);
+        this.noiseSynth.triggerRelease();
         this.activeNotes.delete(activeNote);
         console.log(`Stopping: ${activeNote}`);
         break;
@@ -66,13 +94,17 @@ export class Synth {
 
   // Convert base note string and octave to final note
   _getNoteWithOctave(noteString, octave) {
-    const noteBase = noteString.replace(/\d+$/, ''); // Remove existing octave
+    const noteBase = noteString.replace(/\d+$/, ""); // Remove existing octave
     const baseOctave = parseInt(noteString.match(/\d+$/)[0]); // Extract base octave
     return `${noteBase}${baseOctave + octave}`;
   }
 
   dispose() {
     this.polySynth.dispose();
+    this.noiseSynth.dispose();
+    this.mainGain.dispose();
+    this.noiseGain.dispose();
+    this.filter.dispose();
     this.activeNotes.clear();
   }
 }
