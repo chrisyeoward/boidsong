@@ -49,23 +49,23 @@ export const NOTE_A2 = new Note('NOTE_A2', 110);
 export const NOTE_AS2 = new Note('NOTE_AS2', 117);
 export const NOTE_B2 = new Note('NOTE_B2', 123);
 
-// Scale definitions
+// Scale definitions using string notes for Tone.js
 export const cMinorNotes = [
-  NOTE_C2,
-  NOTE_D2,
-  NOTE_DS2,
-  NOTE_F2,
-  NOTE_G2,
-  NOTE_GS2,
-  NOTE_AS2,
+  "C2",
+  "D2", 
+  "D#2",
+  "F2",
+  "G2",
+  "G#2",
+  "A#2",
 ];
 
 export const cPentatonicNotes = [
-  NOTE_C2,
-  NOTE_DS2,
-  NOTE_F2,
-  NOTE_G2,
-  NOTE_AS2,
+  "C2",
+  "D#2",
+  "F2", 
+  "G2",
+  "A#2",
 ];
 
 // Default export for convenience

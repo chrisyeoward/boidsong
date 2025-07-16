@@ -1,0 +1,78 @@
+// Audio synthesis using Tone.js PolySynth
+// Converted from Processing Synth.pde
+
+import * as Tone from "tone";
+
+export class Synth {
+  constructor(numberOfVoices = 3) {
+    // Create PolySynth with simple sawtooth oscillator
+    this.polySynth = new Tone.PolySynth(Tone.Synth, {
+      maxPolyphony: numberOfVoices,
+      voice: {
+        oscillator: {
+          type: "sawtooth",
+        },
+        envelope: {
+          attack: 0.1,
+          decay: 0.2,
+          sustain: 0.4,
+          release: 0.8,
+        },
+      },
+    });
+
+    // Add some filtering to match Processing version
+    this.filter = new Tone.Filter(2000, "lowpass");
+    this.polySynth.connect(this.filter);
+    this.filter.toDestination();
+
+    // Track notes to handle keyboard repeat
+    this.activeNotes = new Set();
+  }
+
+  async start() {
+    // Start Tone.js audio context (required for user interaction)
+    await Tone.start();
+    console.log("Audio context started");
+  }
+
+  noteOn(noteString, octave) {
+    // Create note with octave (e.g., "C2" + octave 1 = "C3")
+    const finalNote = this._getNoteWithOctave(noteString, octave);
+
+    // If this note is already playing, ignore the repeat
+    if (this.activeNotes.has(finalNote)) {
+      return;
+    }
+
+    // Trigger attack and track the note
+    this.polySynth.triggerAttack(finalNote);
+    this.activeNotes.add(finalNote);
+    console.log(`Playing: ${finalNote}`);
+  }
+
+  noteOff(noteString) {
+    // Find and release any octave of this note
+    const notePrefix = noteString.replace(/\d+$/, ''); // Remove octave number
+    for (const activeNote of this.activeNotes) {
+      if (activeNote.startsWith(notePrefix)) {
+        this.polySynth.triggerRelease(activeNote);
+        this.activeNotes.delete(activeNote);
+        console.log(`Stopping: ${activeNote}`);
+        break;
+      }
+    }
+  }
+
+  // Convert base note string and octave to final note
+  _getNoteWithOctave(noteString, octave) {
+    const noteBase = noteString.replace(/\d+$/, ''); // Remove existing octave
+    const baseOctave = parseInt(noteString.match(/\d+$/)[0]); // Extract base octave
+    return `${noteBase}${baseOctave + octave}`;
+  }
+
+  dispose() {
+    this.polySynth.dispose();
+    this.activeNotes.clear();
+  }
+}
