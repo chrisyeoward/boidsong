@@ -3,12 +3,16 @@ import p5 from "p5";
 import { Boid } from "./Boid.js";
 import { BoidsController } from "./BoidsController.js";
 import { cMinorNotes } from "./notes.js";
+import { Synth } from "./audio.js";
 
 // BoidSong main application
 function sketch(p) {
   let boidsController;
+  let synth;
   let notes = cMinorNotes;
   let currentOctave = 0;
+  let audioStarted = false;
+  let uiDiv;
 
   const BOID_COUNT = 80;
   const MIN_OCTAVE = 0;
@@ -18,6 +22,9 @@ function sketch(p) {
   p.setup = function () {
     p.createCanvas(p.windowWidth, p.windowHeight, p.WEBGL);
     p.colorMode(p.HSB, COLOR_SCALE);
+    
+    // Create HTML overlay for UI
+    createUI();
 
     // Create boids with note-based coloring
     const boids = [];
@@ -46,6 +53,9 @@ function sketch(p) {
       cameraPosition,
       p
     );
+
+    // Create synth (3 voices matching Processing version)
+    synth = new Synth(3);
   };
 
   p.draw = function () {
@@ -57,30 +67,51 @@ function sketch(p) {
     boidsController.runBoids();
     p.pop();
 
-    drawInstructions();
+    updateUI();
   };
 
   function drawCanvas() {
     p.background(9, 12, 26); // Dark blue matching Processing version
   }
 
-  function drawInstructions() {
-    p.fill(255);
-    p.textSize(16);
-    p.text(`Octave: ${currentOctave}`, 20, 30);
+  function createUI() {
+    // Create HTML overlay div
+    uiDiv = document.createElement('div');
+    uiDiv.style.position = 'fixed';
+    uiDiv.style.top = '20px';
+    uiDiv.style.left = '20px';
+    uiDiv.style.color = 'white';
+    uiDiv.style.fontFamily = 'Space Mono, monospace';
+    uiDiv.style.fontSize = '14px';
+    uiDiv.style.pointerEvents = 'none';
+    uiDiv.style.zIndex = '1000';
+    uiDiv.style.textShadow = '1px 1px 2px rgba(0,0,0,0.8)';
+    document.body.appendChild(uiDiv);
+    
+    updateUI();
+  }
 
-    p.textSize(14);
+  function updateUI() {
+    if (!uiDiv) return;
+    
     const keys = ["a", "s", "d", "f", "g", "h", "j"];
+    let html = `<div style="font-size: 16px; margin-bottom: 10px;">Octave: ${currentOctave}</div>`;
+    
     for (let i = 0; i < notes.length; i++) {
-      const noteHue = (i * 3 * COLOR_SCALE) / 4 / notes.length;
-      p.fill(noteHue, 0.65 * COLOR_SCALE, 0.65 * COLOR_SCALE);
-      p.text(`${keys[i]}: ${notes[i].toString()}`, 20, 60 + i * 20);
+      const hue = (i * 270) / notes.length;
+      html += `<div style="color: hsl(${hue}, 65%, 65%); margin: 2px 0;">${keys[i]}: ${notes[i]}</div>`;
     }
-
-    p.fill(255, 200);
-    p.text("</>: -/+ octave", 20, 200);
-    p.text("space: retain boids", 20, 220);
-    p.text(`FPS: ${p.frameRate().toFixed(1)}`, 20, 250);
+    
+    html += `
+      <div style="margin-top: 10px; color: rgba(255,255,255,0.8);">
+        <div>&lt;/&gt;: -/+ octave</div>
+        <div>space: retain boids</div>
+        <div>FPS: ${p.frameRate().toFixed(1)}</div>
+        ${!audioStarted ? '<div style="color: #ff6666;">Click to start audio</div>' : ''}
+      </div>
+    `;
+    
+    uiDiv.innerHTML = html;
   }
 
   function keyToNoteIndex(key) {
@@ -121,9 +152,12 @@ function sketch(p) {
         notes.length
       );
 
-      // TODO: Add audio synthesis
+      // Play note with synth
+      if (synth && audioStarted) {
+        synth.noteOn(notes[note], currentOctave);
+      }
       console.log(
-        `Note pressed: ${notes[note].toString()} at octave ${currentOctave}`
+        `Note pressed: ${notes[note]} at octave ${currentOctave}`
       );
     }
 
@@ -137,12 +171,23 @@ function sketch(p) {
   p.keyReleased = function () {
     const note = keyToNoteIndex(p.key);
     if (note !== -1) {
-      // TODO: Stop audio note
-      console.log(`Note released: ${notes[note].toString()}`);
+      // Stop audio note
+      if (synth && audioStarted) {
+        synth.noteOff(notes[note]);
+      }
+      console.log(`Note released: ${notes[note]}`);
     }
 
     if (p.key === " ") {
       boidsController.releaseAllBoids();
+    }
+  };
+
+  p.mousePressed = async function () {
+    // Start audio context on first click
+    if (!audioStarted && synth) {
+      await synth.start();
+      audioStarted = true;
     }
   };
 
