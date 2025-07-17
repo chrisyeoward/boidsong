@@ -13,10 +13,10 @@ export class Synth {
           type: "sawtooth",
         },
         envelope: {
-          attack: 0.1,
-          decay: 0.2,
-          sustain: 0.4,
-          release: 0.8,
+          attack: 0.01,
+          decay: 0.1,
+          sustain: 0.6,
+          release: 0.4,
         },
       },
     });
@@ -24,18 +24,13 @@ export class Synth {
     // Create single noise synth for texture
     this.noiseSynth = new Tone.NoiseSynth({
       noise: {
-        type: "white",
+        type: "pink",
       },
       envelope: {
-        attack: 0.1,
-        decay: 0.2,
-        sustain: 0.4,
-        release: 0.8,
-      },
-      filter: {
-        type: "bandpass",
-        frequency: 1000,
-        Q: 1,
+        attack: 0.01,
+        decay: 0.1,
+        sustain: 0.6,
+        release: 0.4,
       },
     });
 
@@ -59,7 +54,11 @@ export class Synth {
   async start() {
     // Start Tone.js audio context (required for user interaction)
     await Tone.start();
-    console.log("Audio context started");
+
+    // Configure for low latency after starting
+    Tone.getContext().lookAhead = 0;
+
+    console.log("Audio context started with low latency settings");
   }
 
   noteOn(noteString, octave) {
