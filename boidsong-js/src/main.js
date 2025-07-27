@@ -3,18 +3,20 @@ import p5 from "p5";
 import { Boid } from "./Boid.js";
 import { BoidsController } from "./BoidsController.js";
 import { cMinorNotes } from "./notes.js";
-import { Synth } from "./audio.js";
+import { Synth } from "./Synth.js";
+import { AudioEngine } from "./BoidsAudio.js";
 
 // BoidSong main application
 function sketch(p) {
   let boidsController;
   let synth;
+  let audioEngine;
   let notes = cMinorNotes;
   let currentOctave = 0;
   let audioStarted = false;
   let uiDiv;
 
-  const BOID_COUNT = 80;
+  const BOID_COUNT = 32;
   const MIN_OCTAVE = 0;
   const MAX_OCTAVE = 4;
   const COLOR_SCALE = 360;
@@ -22,7 +24,7 @@ function sketch(p) {
   p.setup = function () {
     p.createCanvas(p.windowWidth, p.windowHeight, p.WEBGL);
     p.colorMode(p.HSB, COLOR_SCALE);
-    
+
     // Create HTML overlay for UI
     createUI();
 
@@ -44,6 +46,9 @@ function sketch(p) {
       );
     }
 
+    // Create audio engine for boid sonification first
+    audioEngine = new AudioEngine(BOID_COUNT);
+
     // Create controller
     const cameraPosition = p.createVector(0, 0, 530);
     const boundRadius = p.height;
@@ -51,7 +56,8 @@ function sketch(p) {
       boids,
       boundRadius,
       cameraPosition,
-      p
+      p,
+      audioEngine
     );
 
     // Create synth (3 voices matching Processing version)
@@ -76,41 +82,45 @@ function sketch(p) {
 
   function createUI() {
     // Create HTML overlay div
-    uiDiv = document.createElement('div');
-    uiDiv.style.position = 'fixed';
-    uiDiv.style.top = '20px';
-    uiDiv.style.left = '20px';
-    uiDiv.style.color = 'white';
-    uiDiv.style.fontFamily = 'Space Mono, monospace';
-    uiDiv.style.fontSize = '14px';
-    uiDiv.style.pointerEvents = 'none';
-    uiDiv.style.zIndex = '1000';
-    uiDiv.style.textShadow = '1px 1px 2px rgba(0,0,0,0.8)';
+    uiDiv = document.createElement("div");
+    uiDiv.style.position = "fixed";
+    uiDiv.style.top = "20px";
+    uiDiv.style.left = "20px";
+    uiDiv.style.color = "white";
+    uiDiv.style.fontFamily = "Space Mono, monospace";
+    uiDiv.style.fontSize = "14px";
+    uiDiv.style.pointerEvents = "none";
+    uiDiv.style.zIndex = "1000";
+    uiDiv.style.textShadow = "1px 1px 2px rgba(0,0,0,0.8)";
     document.body.appendChild(uiDiv);
-    
+
     updateUI();
   }
 
   function updateUI() {
     if (!uiDiv) return;
-    
+
     const keys = ["a", "s", "d", "f", "g", "h", "j"];
     let html = `<div style="font-size: 16px; margin-bottom: 10px;">Octave: ${currentOctave}</div>`;
-    
+
     for (let i = 0; i < notes.length; i++) {
       const hue = (i * 270) / notes.length;
       html += `<div style="color: hsl(${hue}, 65%, 65%); margin: 2px 0;">${keys[i]}: ${notes[i]}</div>`;
     }
-    
+
     html += `
       <div style="margin-top: 10px; color: rgba(255,255,255,0.8);">
         <div>&lt;/&gt;: -/+ octave</div>
         <div>space: retain boids</div>
         <div>FPS: ${p.frameRate().toFixed(1)}</div>
-        ${!audioStarted ? '<div style="color: #ff6666;">Click to start audio</div>' : ''}
+        ${
+          !audioStarted
+            ? '<div style="color: #ff6666;">Click to start audio</div>'
+            : ""
+        }
       </div>
     `;
-    
+
     uiDiv.innerHTML = html;
   }
 
@@ -156,9 +166,7 @@ function sketch(p) {
       if (synth && audioStarted) {
         synth.noteOn(notes[note], currentOctave);
       }
-      console.log(
-        `Note pressed: ${notes[note]} at octave ${currentOctave}`
-      );
+      console.log(`Note pressed: ${notes[note]} at octave ${currentOctave}`);
     }
 
     handleOctaveChange(p.key);
@@ -185,8 +193,9 @@ function sketch(p) {
 
   p.mousePressed = async function () {
     // Start audio context on first click
-    if (!audioStarted && synth) {
+    if (!audioStarted && synth && audioEngine) {
       await synth.start();
+      await audioEngine.start();
       audioStarted = true;
     }
   };
