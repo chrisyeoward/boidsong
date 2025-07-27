@@ -157,8 +157,7 @@ function sketch(p) {
     if (note !== -1) {
       // Pull boid corresponding to that note towards the camera
       boidsController.pullBoid(
-        note + currentOctave * notes.length,
-        MAX_OCTAVE,
+        note,
         notes.length
       );
 

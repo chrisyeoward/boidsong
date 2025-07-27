@@ -35,8 +35,8 @@ export class Synth {
     });
 
     // Mix both synths
-    this.mainGain = new Tone.Gain(0.7); // Main sawtooth volume
-    this.noiseGain = new Tone.Gain(0.01); // Subtle noise volume
+    this.mainGain = new Tone.Gain(0.5); // Main sawtooth volume
+    this.noiseGain = new Tone.Gain(0.005); // Subtle noise volume
 
     this.polySynth.connect(this.mainGain);
     this.noiseSynth.connect(this.noiseGain);
@@ -62,7 +62,7 @@ export class Synth {
   }
 
   noteOn(noteString, octave) {
-    // Create note with octave (e.g., "C2" + octave 1 = "C3")
+    // Create note with octave (e.g., "C" + octave 1 = "C3")
     const finalNote = this._getNoteWithOctave(noteString, octave);
 
     // If this note is already playing, ignore the repeat
@@ -79,9 +79,8 @@ export class Synth {
 
   noteOff(noteString) {
     // Find and release any octave of this note
-    const notePrefix = noteString.replace(/\d+$/, ""); // Remove octave number
     for (const activeNote of this.activeNotes) {
-      if (activeNote.startsWith(notePrefix)) {
+      if (activeNote.startsWith(noteString)) {
         this.polySynth.triggerRelease(activeNote);
         this.noiseSynth.triggerRelease();
         this.activeNotes.delete(activeNote);
@@ -93,9 +92,9 @@ export class Synth {
 
   // Convert base note string and octave to final note
   _getNoteWithOctave(noteString, octave) {
-    const noteBase = noteString.replace(/\d+$/, ""); // Remove existing octave
-    const baseOctave = parseInt(noteString.match(/\d+$/)[0]); // Extract base octave
-    return `${noteBase}${baseOctave + octave}`;
+    // Note string now has no octave, so add base octave (2) + current octave
+    const baseOctave = 2;
+    return `${noteString}${baseOctave + octave}`;
   }
 
   dispose() {
