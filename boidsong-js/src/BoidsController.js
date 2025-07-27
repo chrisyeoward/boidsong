@@ -4,13 +4,14 @@
 import p5 from 'p5'
 
 export class BoidsController {
-  constructor(boids, boundSize, camera, p5Instance) {
+  constructor(boids, boundSize, camera, p5Instance, audioEngine = null) {
     this.p = p5Instance;
     this.boids = boids;
     this.boundSize = boundSize;
     this.camera = camera;
     this.orbitPoint = camera.copy().sub(this.p.createVector(0, 0, 10));
     this.holdingBoids = false;
+    this.audioEngine = audioEngine;
     
     // For future OSC/WebSocket implementation
     this.oscP5 = null;
@@ -28,6 +29,18 @@ export class BoidsController {
       this.constrainBoid(thisBoid);
       this.attractBoid(thisBoid);
       thisBoid.run(this.boids);
+      
+      // Update audio engine with boid position relative to camera (listener)
+      if (this.audioEngine) {
+        const relativePosition = thisBoid.position.copy().sub(this.camera);
+        this.audioEngine.updateBoidPosition(
+          boidIndex,
+          relativePosition.x,
+          relativePosition.y,
+          relativePosition.z
+        );
+        this.audioEngine.setBoidActive(boidIndex, thisBoid.active);
+      }
       
       // TODO: Implement OSC dispatch when needed
       // this.dispatchPosition(thisBoid, boidIndex);
