@@ -74,13 +74,18 @@ export class BoidsController {
   }
 
   // Find and pull a boid for the given note
-  pullBoid(noteIndex, maxOctave, notesLength) {
-    for (let i = noteIndex; i < this.boids.length; i += (maxOctave + 1) * notesLength) {
-      const boid = this.boids[i];
-      if (!boid.active && boid.position.z < this.orbitPoint.z) {
-        boid.setActive(true);
-        break;
-      }
+  pullBoid(noteIndex, notesLength) {
+    // Find the first inactive boid that matches this note
+    const boid = this.boids.find((boid, index) => {
+      // Check if this boid corresponds to the note index
+      const boidNoteIndex = index % notesLength;
+      const targetNoteIndex = noteIndex;
+      return boidNoteIndex === targetNoteIndex && !boid.active && boid.position.z < this.orbitPoint.z;
+    });
+    
+    // If we found a matching inactive boid, activate it
+    if (boid) {
+      boid.setActive(true);
     }
   }
 

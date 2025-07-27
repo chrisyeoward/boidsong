@@ -104,7 +104,7 @@ export class AudioEngine {
     boidOsc.panner.setPosition(audioX, audioY, audioZ);
   }
 
-  setBoidActive(boidIndex, active) {
+  setBoidActive(boidIndex, _active) {
     if (!this.isStarted || boidIndex >= this.boidOscillators.length) return;
 
     const boidOsc = this.boidOscillators[boidIndex];
@@ -143,36 +143,35 @@ export class AudioEngine {
     this.isStarted = false;
   }
 
-  // Convert note strings (like "C2", "D#2") to frequencies
+  // Convert note strings (like "C", "D#") to frequencies
   getFrequenciesFromNotes(noteStrings) {
     const noteToFrequency = {
-      C2: 65.41,
-      "C#2": 69.3,
-      "D♭2": 69.3,
-      D2: 73.42,
-      "D#2": 77.78,
-      "E♭2": 77.78,
-      E2: 82.41,
-      F2: 87.31,
-      "F#2": 92.5,
-      "G♭2": 92.5,
-      G2: 98.0,
-      "G#2": 103.83,
-      "A♭2": 103.83,
-      A2: 110.0,
-      "A#2": 116.54,
-      "B♭2": 116.54,
-      B2: 123.47,
+      C: 261.63,     // C4
+      "C#": 277.18,  // C#4
+      "D♭": 277.18,  // Db4
+      D: 293.66,     // D4
+      "D#": 311.13,  // D#4
+      "E♭": 311.13,  // Eb4
+      E: 329.63,     // E4
+      F: 349.23,     // F4
+      "F#": 369.99,  // F#4
+      "G♭": 369.99,  // Gb4
+      G: 392.00,     // G4
+      "G#": 415.30,  // G#4
+      "A♭": 415.30,  // Ab4
+      A: 440.00,     // A4
+      "A#": 466.16,  // A#4
+      "B♭": 466.16,  // Bb4
+      B: 493.88,     // B4
     };
 
     return noteStrings.map((noteString) => {
       const frequency = noteToFrequency[noteString];
       if (!frequency) {
-        console.warn(`Unknown note: ${noteString}, using C2`);
-        return 65.41;
+        console.warn(`Unknown note: ${noteString}, using C4`);
+        return 261.63;
       }
-      // Move up 2 octaves for more audible range (multiply by 4)
-      return frequency * 4;
+      return frequency;
     });
   }
 }
