@@ -5,20 +5,22 @@ import * as Tone from "tone";
 
 export class Synth {
   constructor(numberOfVoices = 3) {
-    // Create PolySynth with simple sawtooth oscillator
+    // Create PolySynth with sine wave oscillator and 3-second fade
+    const envelope = {
+      attack: 0.01,
+      decay: 10.0, // 3 second fade to sustain
+      sustain: 0.0, // Fade to 0
+      release: 10.0,
+      releaseCurve: "exponential",
+      decayCurve: "exponential",
+    };
     this.polySynth = new Tone.PolySynth(Tone.Synth, {
       maxPolyphony: numberOfVoices,
-      voice: {
-        oscillator: {
-          type: "sawtooth",
-        },
-        envelope: {
-          attack: 0.01,
-          decay: 0.1,
-          sustain: 0.6,
-          release: 0.4,
-        },
+      detune: 5,
+      oscillator: {
+        type: "sine",
       },
+      envelope,
     });
 
     // Create single noise synth for texture
@@ -28,24 +30,26 @@ export class Synth {
       },
       envelope: {
         attack: 0.01,
-        decay: 0.1,
-        sustain: 0.6,
-        release: 0.4,
+        decay: 5.0, // 3 second fade to sustain
+        sustain: 1.0, // Fade to 0
+        release: 5.0,
       },
     });
 
     // Mix both synths
-    this.mainGain = new Tone.Gain(0.5); // Main sawtooth volume
-    this.noiseGain = new Tone.Gain(0.005); // Subtle noise volume
+    this.mainGain = new Tone.Gain(0.05); // Main sawtooth volume
+    this.noiseGain = new Tone.Gain(0.0002); // Subtle noise volume
 
     this.polySynth.connect(this.mainGain);
     this.noiseSynth.connect(this.noiseGain);
 
+    this.mainGain.toDestination();
+    this.noiseGain.toDestination();
     // Add some filtering to match Processing version
-    this.filter = new Tone.Filter(2000, "lowpass");
-    this.mainGain.connect(this.filter);
-    this.noiseGain.connect(this.filter);
-    this.filter.toDestination();
+    // this.filter = new Tone.Filter(2000, "lowpass");
+    // this.mainGain.connect(this.filter);
+    // this.noiseGain.connect(this.filter);
+    // this.filter.toDestination();
 
     // Track notes to handle keyboard repeat
     this.activeNotes = new Set();
@@ -54,6 +58,7 @@ export class Synth {
   async start() {
     // Start Tone.js audio context (required for user interaction)
     await Tone.start();
+    this.noiseSynth.triggerAttack();
 
     // Configure for low latency after starting
     Tone.getContext().lookAhead = 0;
@@ -70,21 +75,19 @@ export class Synth {
       return;
     }
 
-    // Trigger attack on both synths and track the note
-    this.polySynth.triggerAttack(finalNote);
-    this.noiseSynth.triggerAttack(); // Noise doesn't need a note, just trigger
+    // Trigger attack on sine synth and track the note
+    this.polySynth.triggerAttackRelease(finalNote, 0.1);
     this.activeNotes.add(finalNote);
     console.log(`Playing: ${finalNote}`);
   }
 
   noteOff(noteString) {
-    // Find and release any octave of this note
     for (const activeNote of this.activeNotes) {
       if (activeNote.startsWith(noteString)) {
         this.polySynth.triggerRelease(activeNote);
         this.noiseSynth.triggerRelease();
         this.activeNotes.delete(activeNote);
-        console.log(`Stopping: ${activeNote}`);
+        console.log(`Note released (will fade naturally): ${activeNote}`);
         break;
       }
     }
@@ -102,7 +105,6 @@ export class Synth {
     this.noiseSynth.dispose();
     this.mainGain.dispose();
     this.noiseGain.dispose();
-    this.filter.dispose();
     this.activeNotes.clear();
   }
 }

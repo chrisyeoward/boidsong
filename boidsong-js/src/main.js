@@ -16,7 +16,7 @@ function sketch(p) {
   let audioStarted = false;
   let uiDiv;
 
-  const BOID_COUNT = 32;
+  const BOID_COUNT = 40;
   const MIN_OCTAVE = 0;
   const MAX_OCTAVE = 4;
   const COLOR_SCALE = 360;
@@ -41,8 +41,8 @@ function sketch(p) {
           p.random(-p.height / 4, p.height / 4),
           p.random(-p.width / 4, p.width / 4),
           hue,
-          p
-        )
+          p,
+        ),
       );
     }
 
@@ -57,7 +57,7 @@ function sketch(p) {
       boundRadius,
       cameraPosition,
       p,
-      audioEngine
+      audioEngine,
     );
 
     // Create synth (3 voices matching Processing version)
@@ -156,10 +156,7 @@ function sketch(p) {
     const note = keyToNoteIndex(p.key);
     if (note !== -1) {
       // Pull boid corresponding to that note towards the camera
-      boidsController.pullBoid(
-        note,
-        notes.length
-      );
+      boidsController.pullBoid(note, notes.length);
 
       // Play note with synth
       if (synth && audioStarted) {
