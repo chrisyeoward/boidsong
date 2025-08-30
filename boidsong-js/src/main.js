@@ -15,6 +15,7 @@ function sketch(p) {
   let currentOctave = 0;
   let audioStarted = false;
   let uiDiv;
+  let noiseTexture;
 
   const BOID_COUNT = 40;
   const MIN_OCTAVE = 0;
@@ -24,6 +25,9 @@ function sketch(p) {
   p.setup = function () {
     p.createCanvas(p.windowWidth, p.windowHeight, p.WEBGL);
     p.colorMode(p.HSB, COLOR_SCALE);
+
+    // Generate noise texture once during setup
+    generateNoiseTexture();
 
     // Create HTML overlay for UI
     createUI();
@@ -73,11 +77,49 @@ function sketch(p) {
     boidsController.runBoids();
     p.pop();
 
+    // Draw noise overlay on top of everything
+    drawNoiseOverlay();
+
     updateUI();
   };
 
   function drawCanvas() {
     p.background(9, 12, 26); // Dark blue matching Processing version
+  }
+
+  function drawNoiseOverlay() {
+    if (noiseTexture) {
+      // Reset camera to screen space for overlay
+      p.camera();
+      p.push();
+      p.resetMatrix();
+      p.translate(-p.width / 2, -p.height / 2);
+      p.tint(255, 200); // More visible for testing
+      p.image(noiseTexture, 0, 0, p.width, p.height);
+      p.noTint();
+      p.pop();
+    }
+  }
+
+  function generateNoiseTexture() {
+    // Create a smaller graphics buffer for larger grain size
+    const grainSize = 2; // Adjust this for different grain sizes
+    const noiseWidth = Math.ceil(p.width / grainSize);
+    const noiseHeight = Math.ceil(p.height / grainSize);
+    const noiseBuffer = p.createGraphics(noiseWidth, noiseHeight);
+    noiseBuffer.loadPixels();
+
+    // Generate noise pattern at lower resolution
+    for (let i = 0; i < noiseBuffer.pixels.length; i += 4) {
+      const brightness = p.random(0, 255);
+      noiseBuffer.pixels[i] = brightness; // R
+      noiseBuffer.pixels[i + 1] = brightness; // G
+      noiseBuffer.pixels[i + 2] = brightness; // B
+      noiseBuffer.pixels[i + 3] = p.random(10, 30); // A (low alpha for subtle effect)
+    }
+    noiseBuffer.updatePixels();
+
+    noiseTexture = noiseBuffer;
   }
 
   function createUI() {
