@@ -7,6 +7,9 @@ export class AudioEngine {
   constructor(numBoids = 16) {
     this.audioContext = null;
     this.masterGain = null;
+    this.reverbGain = null;
+    this.dryGain = null;
+    this.convolver = null;
     this.boidOscillators = [];
     this.numBoids = numBoids;
     this.isStarted = false;
@@ -25,7 +28,9 @@ export class AudioEngine {
     // Create master gain for overall volume control
     this.masterGain = this.audioContext.createGain();
     this.masterGain.gain.value = 0.1; // Low volume to prevent overwhelming
-    this.masterGain.connect(this.audioContext.destination);
+
+    // Create reverb effect
+    this.setupReverb();
 
     // Set up audio listener position (listener at origin)
     if (this.audioContext.listener.setPosition) {
@@ -44,6 +49,42 @@ export class AudioEngine {
     this.isStarted = true;
     console.log(`Audio engine started with ${this.numBoids} boid oscillators`);
   }
+
+  setupReverb() {
+    // Create convolver for reverb
+    this.convolver = this.audioContext.createConvolver();
+    
+    // Create impulse response for subtle reverb
+    const sampleRate = this.audioContext.sampleRate;
+    const length = sampleRate * 2; // 2 seconds of reverb
+    const impulse = this.audioContext.createBuffer(2, length, sampleRate);
+    
+    // Generate a simple reverb impulse response
+    for (let channel = 0; channel < 2; channel++) {
+      const channelData = impulse.getChannelData(channel);
+      for (let i = 0; i < length; i++) {
+        // Create a decaying noise pattern
+        const decay = Math.pow(1 - i / length, 2);
+        channelData[i] = (Math.random() * 2 - 1) * decay * 0.1;
+      }
+    }
+    
+    this.convolver.buffer = impulse;
+    
+    // Create gain nodes for dry/wet mix
+    this.dryGain = this.audioContext.createGain();
+    this.reverbGain = this.audioContext.createGain();
+    
+    // Set reverb mix (subtle - 20% wet, 80% dry)
+    this.dryGain.gain.value = 0.8;
+    this.reverbGain.gain.value = 0.2;
+    
+    // Connect reverb chain
+    this.convolver.connect(this.reverbGain);
+    this.reverbGain.connect(this.audioContext.destination);
+    this.dryGain.connect(this.audioContext.destination);
+  }
+
 
   createBoidOscillator(index) {
     // Create oscillator
@@ -75,6 +116,10 @@ export class AudioEngine {
     oscillator.connect(panner);
     panner.connect(gain);
     gain.connect(this.masterGain);
+    
+    // Also send to reverb (dry signal)
+    gain.connect(this.dryGain);
+    gain.connect(this.convolver);
 
     // Start oscillator
     oscillator.start();
@@ -162,6 +207,18 @@ export class AudioEngine {
 
     if (this.masterGain) {
       this.masterGain.disconnect();
+    }
+    
+    if (this.dryGain) {
+      this.dryGain.disconnect();
+    }
+    
+    if (this.reverbGain) {
+      this.reverbGain.disconnect();
+    }
+    
+    if (this.convolver) {
+      this.convolver.disconnect();
     }
 
     if (this.audioContext.state !== "closed") {
