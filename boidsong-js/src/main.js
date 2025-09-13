@@ -20,6 +20,8 @@ function sketch(p) {
   let helpContent;
   let closeButton;
   let showHelp = false;
+  let audioStartModal;
+  let audioStartContent;
   let noiseTexture;
 
   const BOID_COUNT = 40;
@@ -133,6 +135,7 @@ function sketch(p) {
     createHelpModal();
     createCloseButton();
     createHelpContent();
+    createAudioStartModal();
     updateUI();
   }
 
@@ -223,6 +226,52 @@ function sketch(p) {
     helpModal.appendChild(helpContent);
   }
 
+  function createAudioStartModal() {
+    // Create modal backdrop
+    audioStartModal = document.createElement("div");
+    audioStartModal.style.position = "fixed";
+    audioStartModal.style.top = "0";
+    audioStartModal.style.left = "0";
+    audioStartModal.style.width = "100%";
+    audioStartModal.style.height = "100%";
+    audioStartModal.style.background = "rgba(0,0,0,0.5)";
+    audioStartModal.style.display = "flex";
+    audioStartModal.style.alignItems = "center";
+    audioStartModal.style.justifyContent = "center";
+    audioStartModal.style.zIndex = "2000";
+    audioStartModal.style.pointerEvents = "auto";
+    audioStartModal.style.cursor = "pointer";
+    document.body.appendChild(audioStartModal);
+
+    // Create modal content
+    audioStartContent = document.createElement("div");
+    audioStartContent.style.background = "rgba(0,0,0,1)";
+    audioStartContent.style.border = "1px solid rgba(255,255,255,0.3)";
+    audioStartContent.style.borderRadius = "12px";
+    audioStartContent.style.padding = "20px";
+    audioStartContent.style.textAlign = "center";
+    audioStartContent.style.color = "white";
+    audioStartContent.style.fontFamily = "Space Mono, monospace";
+    audioStartContent.style.fontSize = "14px";
+    audioStartContent.style.boxShadow = "0 8px 32px rgba(0,0,0,0.2)";
+    audioStartContent.style.maxWidth = "400px";
+    audioStartContent.innerHTML = `
+      <div>Click to start audio</div>
+    `;
+    
+    // Add click handler to start audio
+    audioStartModal.addEventListener("click", async function() {
+      if (!audioStarted && synth && audioEngine) {
+        await synth.start();
+        await audioEngine.start();
+        audioStarted = true;
+        audioStartModal.style.display = "none";
+      }
+    });
+    
+    audioStartModal.appendChild(audioStartContent);
+  }
+
   function toggleHelp() {
     showHelp = !showHelp;
     if (helpModal) {
@@ -236,10 +285,12 @@ function sketch(p) {
     // Update basic info (always visible)
     let basicHtml = `<div style="font-size: 16px; margin-bottom: 10px;">Octave: ${currentOctave}</div>`;
     basicHtml += `<div style="color: rgba(255,255,255,0.8);">FPS: ${p.frameRate().toFixed(1)}</div>`;
-    if (!audioStarted) {
-      basicHtml += '<div style="color: #ff6666;">Click to start audio</div>';
-    }
     uiDiv.innerHTML = basicHtml;
+
+    // Show/hide audio start modal
+    if (audioStartModal) {
+      audioStartModal.style.display = audioStarted ? "none" : "flex";
+    }
 
     // Update help content (only when help is shown)
     if (helpContent) {
@@ -325,12 +376,8 @@ function sketch(p) {
   };
 
   p.mousePressed = async function () {
-    // Start audio context on first click
-    if (!audioStarted && synth && audioEngine) {
-      await synth.start();
-      await audioEngine.start();
-      audioStarted = true;
-    }
+    // Audio start is now handled by the modal click handler
+    // This function can be used for other mouse interactions if needed
   };
 
   p.windowResized = function () {
