@@ -15,6 +15,11 @@ function sketch(p) {
   let currentOctave = 0;
   let audioStarted = false;
   let uiDiv;
+  let helpButton;
+  let helpModal;
+  let helpContent;
+  let closeButton;
+  let showHelp = false;
   let noiseTexture;
 
   const BOID_COUNT = 40;
@@ -123,7 +128,16 @@ function sketch(p) {
   }
 
   function createUI() {
-    // Create HTML overlay div
+    createBasicUI();
+    createHelpButton();
+    createHelpModal();
+    createCloseButton();
+    createHelpContent();
+    updateUI();
+  }
+
+  function createBasicUI() {
+    // Create HTML overlay div for basic info
     uiDiv = document.createElement("div");
     uiDiv.style.position = "fixed";
     uiDiv.style.top = "20px";
@@ -135,35 +149,116 @@ function sketch(p) {
     uiDiv.style.zIndex = "1000";
     uiDiv.style.textShadow = "1px 1px 2px rgba(0,0,0,0.8)";
     document.body.appendChild(uiDiv);
+  }
 
-    updateUI();
+  function createHelpButton() {
+    helpButton = document.createElement("button");
+    helpButton.innerHTML = "?";
+    helpButton.style.position = "fixed";
+    helpButton.style.top = "20px";
+    helpButton.style.right = "20px";
+    helpButton.style.width = "32px";
+    helpButton.style.height = "32px";
+    helpButton.style.borderRadius = "50%";
+    helpButton.style.border = "1px solid rgba(255,255,255,0.2)";
+    helpButton.style.background = "rgba(0,0,0,0.3)";
+    helpButton.style.color = "white";
+    helpButton.style.fontSize = "16px";
+    helpButton.style.fontWeight = "bold";
+    helpButton.style.cursor = "pointer";
+    helpButton.style.zIndex = "1001";
+    helpButton.style.fontFamily = "Space Mono, monospace";
+    helpButton.style.display = "flex";
+    helpButton.style.alignItems = "center";
+    helpButton.style.justifyContent = "center";
+    helpButton.addEventListener("click", toggleHelp);
+    document.body.appendChild(helpButton);
+  }
+
+  function createHelpModal() {
+    helpModal = document.createElement("div");
+    helpModal.style.position = "fixed";
+    helpModal.style.top = "20px";
+    helpModal.style.right = "20px";
+    helpModal.style.width = "300px";
+    helpModal.style.maxHeight = "400px";
+    helpModal.style.background = "rgba(0,0,0,1)";
+    helpModal.style.border = "1px solid rgba(255,255,255,0.2)";
+    helpModal.style.borderRadius = "8px";
+    helpModal.style.padding = "20px";
+    helpModal.style.color = "white";
+    helpModal.style.fontFamily = "Space Mono, monospace";
+    helpModal.style.fontSize = "14px";
+    helpModal.style.zIndex = "1002";
+    helpModal.style.display = "none";
+    helpModal.style.overflowY = "auto";
+    helpModal.style.boxShadow = "0 4px 20px rgba(0,0,0,0.5)";
+    document.body.appendChild(helpModal);
+  }
+
+  function createCloseButton() {
+    closeButton = document.createElement("button");
+    closeButton.innerHTML = "×";
+    closeButton.style.position = "absolute";
+    closeButton.style.top = "8px";
+    closeButton.style.right = "8px";
+    closeButton.style.width = "24px";
+    closeButton.style.height = "24px";
+    closeButton.style.border = "none";
+    closeButton.style.background = "transparent";
+    closeButton.style.color = "white";
+    closeButton.style.fontSize = "18px";
+    closeButton.style.cursor = "pointer";
+    closeButton.style.borderRadius = "50%";
+    closeButton.style.display = "flex";
+    closeButton.style.alignItems = "center";
+    closeButton.style.justifyContent = "center";
+    closeButton.addEventListener("click", toggleHelp);
+    helpModal.appendChild(closeButton);
+  }
+
+  function createHelpContent() {
+    helpContent = document.createElement("div");
+    helpContent.style.marginTop = "10px";
+    helpModal.appendChild(helpContent);
+  }
+
+  function toggleHelp() {
+    showHelp = !showHelp;
+    if (helpModal) {
+      helpModal.style.display = showHelp ? "block" : "none";
+    }
   }
 
   function updateUI() {
     if (!uiDiv) return;
 
-    const keys = ["a", "s", "d", "f", "g", "h", "j"];
-    let html = `<div style="font-size: 16px; margin-bottom: 10px;">Octave: ${currentOctave}</div>`;
-
-    for (let i = 0; i < notes.length; i++) {
-      const hue = (i * 270) / notes.length;
-      html += `<div style="color: hsl(${hue}, 65%, 65%); margin: 2px 0;">${keys[i]}: ${notes[i]}</div>`;
+    // Update basic info (always visible)
+    let basicHtml = `<div style="font-size: 16px; margin-bottom: 10px;">Octave: ${currentOctave}</div>`;
+    basicHtml += `<div style="color: rgba(255,255,255,0.8);">FPS: ${p.frameRate().toFixed(1)}</div>`;
+    if (!audioStarted) {
+      basicHtml += '<div style="color: #ff6666;">Click to start audio</div>';
     }
+    uiDiv.innerHTML = basicHtml;
 
-    html += `
-      <div style="margin-top: 10px; color: rgba(255,255,255,0.8);">
-        <div>&lt;/&gt;: -/+ octave</div>
-        <div>space: retain boids</div>
-        <div>FPS: ${p.frameRate().toFixed(1)}</div>
-        ${
-          !audioStarted
-            ? '<div style="color: #ff6666;">Click to start audio</div>'
-            : ""
-        }
-      </div>
-    `;
+    // Update help content (only when help is shown)
+    if (helpContent) {
+      const keys = ["a", "s", "d", "f", "g", "h", "j"];
+      let helpHtml = `<div style="font-size: 16px; margin-bottom: 10px; font-weight: bold;">Controls</div>`;
 
-    uiDiv.innerHTML = html;
+      for (let i = 0; i < notes.length; i++) {
+        const hue = (i * 270) / notes.length;
+        helpHtml += `<div style="color: hsl(${hue}, 65%, 65%); margin: 2px 0;">${keys[i]}: ${notes[i]}</div>`;
+      }
+
+      helpHtml += `
+        <div style="margin-top: 15px; color: rgba(255,255,255,0.8);">
+          <div>&lt;/&gt;: -/+ octave</div>
+        </div>
+      `;
+
+      helpContent.innerHTML = helpHtml;
+    }
   }
 
   function keyToNoteIndex(key) {
