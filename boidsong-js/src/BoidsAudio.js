@@ -69,7 +69,7 @@ export class AudioEngine {
     // Create gain for individual boid volume
     const gain = this.audioContext.createGain();
     // Normalize gain so all oscillators together add up to 1
-    gain.gain.value = 1.0 / this.numBoids;
+    gain.gain.value = (1.0 / this.numBoids) * 2;
 
     // Connect audio graph: oscillator -> panner -> gain -> master
     oscillator.connect(panner);
@@ -113,6 +113,34 @@ export class AudioEngine {
     // Note: Active state no longer affects volume, only visual behavior
     // Volume is normalized based on total number of oscillators
     // Individual gain is already set to 1/numBoids, so no changes needed here
+  }
+
+  updateBoidCount(newCount) {
+    if (!this.isStarted) return;
+
+    // Dispose of existing oscillators
+    this.boidOscillators.forEach((boidOsc) => {
+      try {
+        boidOsc.oscillator.stop();
+        boidOsc.oscillator.disconnect();
+        boidOsc.panner.disconnect();
+        boidOsc.gain.disconnect();
+      } catch (e) {
+        // Oscillator might already be stopped
+      }
+    });
+
+    // Update count and recreate oscillators
+    this.numBoids = newCount;
+    this.boidOscillators = [];
+
+    // Create new oscillators
+    for (let i = 0; i < this.numBoids; i++) {
+      const boidOsc = this.createBoidOscillator(i);
+      this.boidOscillators.push(boidOsc);
+    }
+
+    console.log(`Audio engine updated to ${this.numBoids} boid oscillators`);
   }
 
   dispose() {

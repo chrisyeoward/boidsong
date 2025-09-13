@@ -12,7 +12,7 @@ function sketch(p) {
   let synth;
   let audioEngine;
   let notes = cMinorNotes;
-  let currentOctave = 0;
+  let currentOctave = 1;
   let audioStarted = false;
   let uiDiv;
   let helpButton;
@@ -23,11 +23,13 @@ function sketch(p) {
   let audioStartModal;
   let audioStartContent;
   let noiseTexture;
+  let boidCountDropdown;
+  let currentBoidCount = 56; // Default to 84 boids (12 * 7)
 
-  const BOID_COUNT = 40;
   const MIN_OCTAVE = 0;
   const MAX_OCTAVE = 4;
   const COLOR_SCALE = 360;
+  const BOID_COUNT_OPTIONS = [21, 28, 35, 42, 49, 56, 63, 70, 77, 84];
 
   p.setup = function () {
     p.createCanvas(p.windowWidth, p.windowHeight, p.WEBGL);
@@ -40,25 +42,10 @@ function sketch(p) {
     createUI();
 
     // Create boids with note-based coloring
-    const boids = [];
-    for (let i = 0; i < BOID_COUNT; i++) {
-      const noteCount = notes.length;
-      let hue = (i * ((3 * COLOR_SCALE) / 4)) / noteCount;
-      hue = hue % ((3 * COLOR_SCALE) / 4 - 1);
-
-      boids.push(
-        new Boid(
-          p.random(-p.width / 4, p.width / 4),
-          p.random(-p.height / 4, p.height / 4),
-          p.random(-p.width / 4, p.width / 4),
-          hue,
-          p,
-        ),
-      );
-    }
+    const boids = createBoids(currentBoidCount);
 
     // Create audio engine for boid sonification first
-    audioEngine = new AudioEngine(BOID_COUNT);
+    audioEngine = new AudioEngine(currentBoidCount);
 
     // Create controller
     const cameraPosition = p.createVector(0, 0, 530);
@@ -129,8 +116,29 @@ function sketch(p) {
     noiseTexture = noiseBuffer;
   }
 
+  function createBoids(count) {
+    const boids = [];
+    for (let i = 0; i < count; i++) {
+      const noteCount = notes.length;
+      let hue = (i * ((3 * COLOR_SCALE) / 4)) / noteCount;
+      hue = hue % ((3 * COLOR_SCALE) / 4 - 1);
+
+      boids.push(
+        new Boid(
+          p.random(-p.width / 4, p.width / 4),
+          p.random(-p.height / 4, p.height / 4),
+          p.random(-p.width / 4, p.width / 4),
+          hue,
+          p,
+        ),
+      );
+    }
+    return boids;
+  }
+
   function createUI() {
     createBasicUI();
+    createBoidCountDropdown();
     createHelpButton();
     createHelpModal();
     createCloseButton();
@@ -148,10 +156,60 @@ function sketch(p) {
     uiDiv.style.color = "white";
     uiDiv.style.fontFamily = "Space Mono, monospace";
     uiDiv.style.fontSize = "14px";
-    uiDiv.style.pointerEvents = "none";
     uiDiv.style.zIndex = "1000";
     uiDiv.style.textShadow = "1px 1px 2px rgba(0,0,0,0.8)";
     document.body.appendChild(uiDiv);
+  }
+
+  function createBoidCountDropdown() {
+    // Create dropdown container
+    const dropdownContainer = document.createElement("div");
+    dropdownContainer.style.marginRight = "20px";
+    dropdownContainer.style.pointerEvents = "auto";
+    dropdownContainer.style.display = "inline-block";
+
+    // Create label
+    const label = document.createElement("label");
+    label.textContent = "Boids: ";
+    label.style.color = "white";
+    label.style.fontFamily = "Space Mono, monospace";
+    label.style.fontSize = "14px";
+    label.style.marginRight = "8px";
+    label.style.textShadow = "1px 1px 2px rgba(0,0,0,0.8)";
+
+    // Create dropdown
+    boidCountDropdown = document.createElement("select");
+    boidCountDropdown.style.background = "rgba(0,0,0,0.7)";
+    boidCountDropdown.style.border = "1px solid rgba(255,255,255,0.3)";
+    boidCountDropdown.style.borderRadius = "4px";
+    boidCountDropdown.style.color = "white";
+    boidCountDropdown.style.fontFamily = "Space Mono, monospace";
+    boidCountDropdown.style.fontSize = "14px";
+    boidCountDropdown.style.padding = "4px 8px";
+    boidCountDropdown.style.cursor = "pointer";
+
+    // Add options
+    BOID_COUNT_OPTIONS.forEach(count => {
+      const option = document.createElement("option");
+      option.value = count;
+      option.textContent = count;
+      if (count === currentBoidCount) {
+        option.selected = true;
+      }
+      boidCountDropdown.appendChild(option);
+    });
+
+    // Add change handler
+    boidCountDropdown.addEventListener("change", function() {
+      const newCount = parseInt(this.value);
+      if (newCount !== currentBoidCount) {
+        changeBoidCount(newCount);
+      }
+    });
+
+    dropdownContainer.appendChild(label);
+    dropdownContainer.appendChild(boidCountDropdown);
+    uiDiv.appendChild(dropdownContainer);
   }
 
   function createHelpButton() {
@@ -279,13 +337,52 @@ function sketch(p) {
     }
   }
 
+  function changeBoidCount(newCount) {
+    currentBoidCount = newCount;
+    
+    // Create new boids
+    const newBoids = createBoids(currentBoidCount);
+    
+    // Update boidsController with new boids
+    boidsController.boids = newBoids;
+    
+    // Update audio engine with new count
+    if (audioEngine && audioStarted) {
+      audioEngine.updateBoidCount(currentBoidCount);
+    }
+    
+    console.log(`Boid count changed to: ${currentBoidCount}`);
+  }
+
   function updateUI() {
     if (!uiDiv) return;
 
-    // Update basic info (always visible)
-    let basicHtml = `<div style="font-size: 16px; margin-bottom: 10px;">Octave: ${currentOctave}</div>`;
-    basicHtml += `<div style="color: rgba(255,255,255,0.8);">FPS: ${p.frameRate().toFixed(1)}</div>`;
-    uiDiv.innerHTML = basicHtml;
+    // Find the octave and FPS elements to update them
+    let octaveElement = uiDiv.querySelector('.octave-display');
+    let fpsElement = uiDiv.querySelector('.fps-display');
+    
+    // Create octave element if it doesn't exist
+    if (!octaveElement) {
+      octaveElement = document.createElement("div");
+      octaveElement.className = "octave-display";
+      octaveElement.style.fontSize = "14px";
+      octaveElement.style.marginRight = "20px";
+      octaveElement.style.display = "inline-block";
+      uiDiv.appendChild(octaveElement);
+    }
+    
+    // Create FPS element if it doesn't exist
+    if (!fpsElement) {
+      fpsElement = document.createElement("div");
+      fpsElement.className = "fps-display";
+      fpsElement.style.color = "rgba(255,255,255,0.8)";
+      fpsElement.style.display = "inline-block";
+      uiDiv.appendChild(fpsElement);
+    }
+    
+    // Update the content
+    octaveElement.textContent = `Octave: ${currentOctave}`;
+    fpsElement.textContent = `FPS: ${p.frameRate().toFixed(1)}`;
 
     // Show/hide audio start modal
     if (audioStartModal) {
