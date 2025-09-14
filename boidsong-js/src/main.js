@@ -241,8 +241,7 @@ function sketch(p) {
     helpModal.style.position = "fixed";
     helpModal.style.top = "20px";
     helpModal.style.right = "20px";
-    helpModal.style.width = "300px";
-    helpModal.style.maxHeight = "400px";
+    helpModal.style.width = "400px";
     helpModal.style.background = "rgba(0,0,0,1)";
     helpModal.style.border = "1px solid rgba(255,255,255,0.2)";
     helpModal.style.borderRadius = "8px";
@@ -252,7 +251,6 @@ function sketch(p) {
     helpModal.style.fontSize = "14px";
     helpModal.style.zIndex = "1002";
     helpModal.style.display = "none";
-    helpModal.style.overflowY = "auto";
     helpModal.style.boxShadow = "0 4px 20px rgba(0,0,0,0.5)";
     document.body.appendChild(helpModal);
   }
@@ -392,7 +390,14 @@ function sketch(p) {
     // Update help content (only when help is shown)
     if (helpContent) {
       const keys = ["a", "s", "d", "f", "g", "h", "j"];
-      let helpHtml = `<div style="font-size: 16px; margin-bottom: 10px; font-weight: bold;">Controls</div>`;
+      let helpHtml = `
+        <div style="font-size: 20px; margin-bottom: 15px; font-weight: bold; color: #ffffff;">BoidSong</div>
+        <div style="font-size: 14px; margin-bottom: 20px; color: rgba(255,255,255,0.9); line-height: 1.4;">
+          An interactive, sonified boids simulation using spatial audio.<br><br>
+          Play notes using keys A-J, and listen to the boids response.
+        </div>
+        <div style="font-size: 16px; margin-bottom: 10px; font-weight: bold;">Controls</div>
+      `;
 
       for (let i = 0; i < notes.length; i++) {
         const hue = (i * 270) / notes.length;
