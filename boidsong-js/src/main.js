@@ -88,22 +88,28 @@ function sketch(p) {
       p.push();
       p.resetMatrix();
       p.translate(-p.width / 2, -p.height / 2);
-      p.tint(255, 200); // More visible for testing
-      p.image(noiseTexture, 0, 0, p.width, p.height);
+      p.tint(255, 200);
+
+      // Tile the noise texture across the screen
+      const tileSize = noiseTexture.width;
+      for (let x = 0; x < p.width; x += tileSize) {
+        for (let y = 0; y < p.height; y += tileSize) {
+          p.image(noiseTexture, x, y);
+        }
+      }
+
       p.noTint();
       p.pop();
     }
   }
 
   function generateNoiseTexture() {
-    // Create a smaller graphics buffer for larger grain size
-    const grainSize = 1; // Adjust this for different grain sizes
-    const noiseWidth = Math.ceil(p.width / grainSize);
-    const noiseHeight = Math.ceil(p.height / grainSize);
-    const noiseBuffer = p.createGraphics(noiseWidth, noiseHeight);
+    // Create a small tileable noise pattern (much faster than full screen)
+    const tileSize = 256; // Small tile that will be repeated
+    const noiseBuffer = p.createGraphics(tileSize, tileSize);
     noiseBuffer.loadPixels();
 
-    // Generate noise pattern at lower resolution
+    // Generate noise pattern for the tile
     for (let i = 0; i < noiseBuffer.pixels.length; i += 4) {
       const brightness = p.random(0, 255);
       noiseBuffer.pixels[i] = brightness; // R
