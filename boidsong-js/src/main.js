@@ -312,7 +312,10 @@ function sketch(p) {
     audioStartContent.style.boxShadow = "0 8px 32px rgba(0,0,0,0.2)";
     audioStartContent.style.maxWidth = "400px";
     audioStartContent.innerHTML = `
-      <div>Click to start audio</div>
+      <div style="font-size: 32px; font-weight: bold; margin-bottom: 30px;">BoidSong</div>
+      <div style="margin-bottom: 15px;">Play notes using keys A-J.</div>
+      <div style="margin-bottom: 15px;">Use headphones for optimal experience.</div>
+      <div style="margin-top: 25px;">Click anywhere to begin.</div>
     `;
     
     // Add click handler to start audio
