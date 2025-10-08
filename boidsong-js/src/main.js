@@ -115,7 +115,7 @@ function sketch(p) {
       noiseBuffer.pixels[i] = brightness; // R
       noiseBuffer.pixels[i + 1] = brightness; // G
       noiseBuffer.pixels[i + 2] = brightness; // B
-      noiseBuffer.pixels[i + 3] = p.random(5, 20); // A (low alpha for subtle effect)
+      noiseBuffer.pixels[i + 3] = p.random(0, 10); // A (low alpha for subtle effect)
     }
     noiseBuffer.updatePixels();
 
