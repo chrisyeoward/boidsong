@@ -97,7 +97,7 @@ function sketch(p) {
 
   function generateNoiseTexture() {
     // Create a smaller graphics buffer for larger grain size
-    const grainSize = 2; // Adjust this for different grain sizes
+    const grainSize = 1; // Adjust this for different grain sizes
     const noiseWidth = Math.ceil(p.width / grainSize);
     const noiseHeight = Math.ceil(p.height / grainSize);
     const noiseBuffer = p.createGraphics(noiseWidth, noiseHeight);
@@ -109,7 +109,7 @@ function sketch(p) {
       noiseBuffer.pixels[i] = brightness; // R
       noiseBuffer.pixels[i + 1] = brightness; // G
       noiseBuffer.pixels[i + 2] = brightness; // B
-      noiseBuffer.pixels[i + 3] = p.random(10, 30); // A (low alpha for subtle effect)
+      noiseBuffer.pixels[i + 3] = p.random(5, 20); // A (low alpha for subtle effect)
     }
     noiseBuffer.updatePixels();
 
