@@ -23,13 +23,20 @@ export class BoidsController {
   }
 
   runBoids() {
+    // Calculate center of mass for all boids
+    const centerOfMass = this.calculateCenterOfMass();
+
+    // Log center of mass relative to orbit point
+    const relativeToOrbit = centerOfMass.copy().sub(this.orbitPoint);
+    console.log(`Center of mass relative to orbit: x=${relativeToOrbit.x.toFixed(2)}, y=${relativeToOrbit.y.toFixed(2)}, z=${relativeToOrbit.z.toFixed(2)}`);
+
     for (let boidIndex = 0; boidIndex < this.boids.length; boidIndex++) {
       const thisBoid = this.boids[boidIndex];
-      
+
       this.constrainBoid(thisBoid);
       this.attractBoid(thisBoid);
-      thisBoid.run(this.boids);
-      
+      thisBoid.run(this.boids, centerOfMass);
+
       // Update audio engine with boid position relative to camera (listener)
       if (this.audioEngine) {
         const relativePosition = thisBoid.position.copy().sub(this.camera);
@@ -41,35 +48,45 @@ export class BoidsController {
         );
         this.audioEngine.setBoidActive(boidIndex, thisBoid.active);
       }
-      
+
       // TODO: Implement OSC dispatch when needed
       // this.dispatchPosition(thisBoid, boidIndex);
     }
+  }
+
+  // Calculate center of mass of all boids
+  calculateCenterOfMass() {
+    const sum = this.p.createVector(0, 0, 0);
+    for (const boid of this.boids) {
+      sum.add(boid.position);
+    }
+    sum.div(this.boids.length);
+    return sum;
   }
 
   // Calculate boundary force
   bound(boid) {
     const boundMag = 0.005;
     const boundsForce = this.p.createVector(0, 0, 0);
-    
+
     if (boid.position.x < -this.boundSize) {
       boundsForce.add(boundMag, 0, 0);
     } else if (boid.position.x > this.boundSize) {
       boundsForce.add(-boundMag, 0, 0);
     }
-    
+
     if (boid.position.z < -this.boundSize) {
       boundsForce.add(0, 0, boundMag);
     } else if (boid.position.z > this.boundSize) {
       boundsForce.add(0, 0, -boundMag);
     }
-    
+
     if (boid.position.y < -this.boundSize) {
       boundsForce.add(0, boundMag, 0);
     } else if (boid.position.y > this.boundSize) {
       boundsForce.add(0, -boundMag, 0);
     }
-    
+
     return boundsForce;
   }
 
@@ -116,10 +133,10 @@ export class BoidsController {
       const pullForce = this.orbitPoint.copy()
         .sub(boid.position)
         .normalize()
-        .mult(0.15);
+        .mult(0.25);
       
       boid.applyForce(pullForce);
-      
+
       // Release boid if it moves beyond orbit point
       if (boid.position.z > this.orbitPoint.z) {
         this.releaseBoid(boid);

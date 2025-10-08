@@ -20,8 +20,8 @@ export class Boid {
     this.active = false;
   }
 
-  run(boids) {
-    this.flock(boids);
+  run(boids, centerOfMass = null) {
+    this.flock(boids, centerOfMass);
     this.render();
     this.update();
     this.reset();
@@ -113,7 +113,7 @@ export class Boid {
   }
 
   // Flocking behavior
-  flock(boids) {
+  flock(boids, centerOfMass = null) {
     const sep = this.separate(boids);
     const ali = this.align(boids);
     const coh = this.cohesion(boids);
@@ -126,6 +126,13 @@ export class Boid {
     this.applyForce(sep);
     this.applyForce(ali);
     this.applyForce(coh);
+
+    // Add gentle attraction to center of mass
+    if (centerOfMass) {
+      const centerAttraction = this.seek(centerOfMass);
+      centerAttraction.mult(0.1); // Gentle pull
+      this.applyForce(centerAttraction);
+    }
   }
 
   // Seek behavior
